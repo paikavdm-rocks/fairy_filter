@@ -14,6 +14,8 @@ let poses = [];
 let fairyFilterActive = false;
 let prevHandX = null;
 let handVelocity = 0;
+let fullFairyImage = null;
+let isTransformingSelf = false;
 
 // Models will be loaded asynchronously in setup()
 
@@ -103,20 +105,55 @@ function setup() {
 function draw() {
   background(0);
 
+  if (fullFairyImage) {
+    // 🌟 THE FINAL MASTERPIECE 🌟
+    image(fullFairyImage, 0, 0, width, height);
+
+    // Magic Frame
+    noFill();
+    strokeWeight(20);
+    stroke(wingColor);
+    rect(0, 0, width, height);
+    
+    // Ambient falling particles over the static image
+    for (let i = particles.length - 1; i >= 0; i--) {
+      particles[i].y += 1; // gently fall
+      particles[i].x += random(-1, 1);
+      particles[i].update();
+      particles[i].show();
+      if (particles[i].finished()) particles.splice(i, 1);
+    }
+    if (frameCount % 10 === 0) {
+      let p = new Particle(random(width), random(height));
+      p.color = color(255, 255, 200);
+      particles.push(p);
+    }
+    return; // Stop the regular video logic from running!
+  }
+
   // 1. We always show the live feed, but with a fairy transformation
   push();
   translate(width, 0); // Flipped view
   scale(-1, 1);
   
-  // Hand Shake velocity logic
+  // Hand Shake velocity and pose logic
   if (hands.length > 0) {
-    // Only check shake if object has already been transformed
-    let wrist = hands[0].wrist || hands[0].keypoints[0];
-    if (prevHandX !== null && currentObjectTransformed) {
+    let hand = hands[0];
+    let wrist = hand.wrist || hand.keypoints[0];
+    let fist = isFist(hand);
+    
+    if (prevHandX !== null && currentObjectTransformed && !fullFairyImage && !isTransformingSelf) {
       let speed = abs(wrist.x - prevHandX);
       handVelocity = lerp(handVelocity, speed, 0.4); // Reacts faster
-      if (handVelocity > 8) { // Much easier shake threshold
+      
+      // Shaking an open hand activates the real-time filter aura!
+      if (!fist && handVelocity > 8) { 
         fairyFilterActive = true;
+      }
+      
+      // Closing your hand into a fist triggers the final API call!
+      if (fist && fairyFilterActive) {
+        castSelfSpell();
       }
     }
     prevHandX = wrist.x;
@@ -160,10 +197,24 @@ function draw() {
   // Draw Wand
   drawWand();
   
-  // Casting Overlay
+  // Casting Overlay for Regional Spell
   if (isCasting) {
     fill(255, 255, 255, 200);
     rect(0, 0, width, height);
+  }
+  
+  // Casting Overlay for Full Self Spell
+  if (isTransformingSelf) {
+    fill(255, 255, 255, map(sin(frameCount * 0.1), -1, 1, 100, 200));
+    rect(0, 0, width, height);
+    
+    push();
+    fill(255, 0, 255);
+    textAlign(CENTER, CENTER);
+    textFont('Cinzel Decorative');
+    textSize(30);
+    text("🌟 AWAKENING FAIRY FORM 🌟", width/2, height/2);
+    pop();
   }
 }
 
@@ -373,25 +424,15 @@ function applyObjectTransformation() {
   let objW = width * 0.3;
   let objH = height * 0.3;
   
-  let targetX = width / 2;
-  let targetY = height / 2;
+  let pos = getObjectPosition();
   
-  if (hands.length > 0) {
-    let hand = hands[0];
-    let wrist = hand.wrist || hand.keypoints[0]; // fallback
-    
-    // Map coordinates to account for the flipped video!
-    targetX = width - wrist.x;
-    targetY = wrist.y;
-  }
-  
-  image(currentObjectTransformed, targetX - objW/2, targetY - objH/2, objW, objH);
+  image(currentObjectTransformed, pos.x - objW/2, pos.y - objH/2, objW, objH);
   
   // Add glitter around the specific transformed object
   strokeWeight(2);
   stroke(255, 255, 0, 150);
   noFill();
-  rect(targetX - objW/2, targetY - objH/2, objW, objH);
+  rect(pos.x - objW/2, pos.y - objH/2, objW, objH);
   pop();
 }
 
@@ -470,6 +511,72 @@ async function castRegionalSpell(objectPrompt) {
   }
 }
 
+async function castSelfSpell() {
+  if (isTransformingSelf) return;
+  isTransformingSelf = true;
+  feedback.html("Fairy Awakening... Please hold still and wait for the magic to finish!");
+  
+  // Capture the full composite (video + the drawn wand proxy object)
+  let offscreen = createGraphics(width, height);
+  
+  // 1. Draw video flipped
+  offscreen.push();
+  offscreen.translate(width, 0);
+  offscreen.scale(-1, 1);
+  offscreen.image(video, 0, 0, width, height);
+  offscreen.pop();
+  
+  // 2. Composite the Wand over the hand/hands!
+  if (currentObjectTransformed && hands.length > 0) {
+    let pos = getObjectPosition();
+    let objW = width * 0.3;
+    let objH = height * 0.3;
+    offscreen.blendMode(SCREEN);
+    offscreen.image(currentObjectTransformed, pos.x - objW/2, pos.y - objH/2, objW, objH);
+    offscreen.blendMode(BLEND);
+  }
+  
+  let imgBase64 = offscreen.elt.toDataURL();
+  
+  let fairyAesthetic = "ethereal lighting, cinematic, glittery fairy kingdom style, incredibly beautiful fairy magic.";
+  let targetModel = "google/nano-banana"; 
+
+  // Image-To-Image prompt asking for a full transformation
+  let prompt = "High quality masterpiece photo of an ethereal human transformed into a gorgeous magical fairy inside a glowing fairy forest. They are holding " + document.getElementById('input_image_prompt').value + " which is glowing powerfully. " + fairyAesthetic;
+
+  let postData = {
+    model: targetModel,
+    input: {
+      prompt: prompt,
+      image_input: [imgBase64],
+    },
+  };
+
+  try {
+    const response = await fetch(replicateProxy, {
+      headers: { "Content-Type": `application/json` },
+      method: "POST",
+      body: JSON.stringify(postData),
+    });
+    const result = await response.json();
+
+    if (result.output) {
+      loadImage(result.output, (incomingImage) => {
+        fullFairyImage = incomingImage; 
+        isTransformingSelf = false;
+        feedback.html("You are now a Fairy!");
+        
+        // Spawn ultimate particle blast
+        for(let i=0; i<200; i++) particles.push(new Particle(width/2, height/2));
+      });
+    }
+  } catch (error) {
+    isTransformingSelf = false;
+    fairyFilterActive = false; // Reset to let them try again
+    feedback.html("The fairy transformation failed! Try shaking your hand again.");
+  }
+}
+
 class Particle {
   constructor(x, y) {
     this.x = x;
@@ -490,4 +597,72 @@ class Particle {
     fill(red(this.color), green(this.color), blue(this.color), this.alpha);
     ellipse(this.x, this.y, random(2, 5));
   }
+}
+
+// Heuristic to detect a closed fist
+function isFist(hand) {
+  let foldedFingers = 0;
+  let wrist = hand.keypoints[0];
+  
+  let fingers = [
+    {tip: 8, mcp: 5},   // Index
+    {tip: 12, mcp: 9},  // Middle
+    {tip: 16, mcp: 13}, // Ring
+    {tip: 20, mcp: 17}  // Pinky
+  ];
+  
+  for (let f of fingers) {
+    let tip = hand.keypoints[f.tip];
+    let mcp = hand.keypoints[f.mcp];
+    
+    let dTip = dist(wrist.x, wrist.y, tip.x, tip.y);
+    let dMcp = dist(wrist.x, wrist.y, mcp.x, mcp.y);
+    
+    // Mathematical heuristic:
+    // A fully extended finger tip is generally > 2.0x further from the wrist than the knuckle.
+    // A folded finger (closed fist) brings the tip essentially to the same distance as the knuckle (~1.0x to ~1.3x).
+    if (dTip < dMcp * 1.5) { 
+      foldedFingers++;
+    }
+  }
+  
+  return foldedFingers >= 3;
+}
+
+// Find the perfect centroid for the magical object
+function getObjectPosition() {
+  let tx = width / 2;
+  let ty = height / 2;
+  
+  if (hands.length > 0) {
+    let sumX = 0;
+    let sumY = 0;
+    let count = min(hands.length, 2); // Max 2 hands supported
+    
+    for (let i = 0; i < count; i++) {
+      let wrist = hands[i].wrist || hands[i].keypoints[0];
+      
+      if (count === 1) {
+        // If holding with 1 hand, place the item squarely in the center of the palm!
+        let mcp = hands[i].keypoints[9]; // Middle finger knuckle
+        if (mcp) {
+          // Midpoint between wrist and middle knuckle
+          sumX += (width - wrist.x + width - mcp.x) / 2;
+          sumY += (wrist.y + mcp.y) / 2;
+        } else {
+          sumX += (width - wrist.x);
+          sumY += wrist.y;
+        }
+      } else {
+        // If holding with 2 hands, float it perfectly between both of your hands!
+        sumX += (width - wrist.x);
+        sumY += wrist.y;
+      }
+    }
+    
+    tx = sumX / count;
+    ty = sumY / count;
+  }
+  
+  return {x: tx, y: ty};
 }
