@@ -7,12 +7,13 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/addons/p5.sound.min.js"></script>
   <script src="https://unpkg.com/ml5@1/dist/ml5.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Quicksand:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Quicksand:wght@400;700&family=Caveat:wght@600&display=swap" rel="stylesheet">
   <style>
     body {
       margin: 0;
       padding: 0;
-      background: radial-gradient(circle at center, #2a0845 0%, #000000 100%);
+      background: #2a0845 url('fairy_bg.webp') no-repeat center center fixed;
+      background-size: cover;
       color: #fff;
       display: flex;
       flex-direction: column;
@@ -35,17 +36,21 @@
       text-shadow: 0 0 20px #ff00ff, 0 0 40px #ff00ff;
     }
     .instructions {
-      font-size: 1.1rem;
-      color: #e0b0ff;
-      max-width: 600px;
+      font-family: 'Caveat', cursive;
+      font-size: 1.6rem;
+      color: #4a2e15; /* Dark brown ink */
+      max-width: 650px;
       margin: 0 auto;
       text-align: left;
-      line-height: 1.6;
-      background: rgba(255, 0, 255, 0.1);
-      padding: 20px 30px;
-      border-radius: 15px;
-      border: 1px solid rgba(255, 0, 255, 0.3);
-      box-shadow: 0 0 15px rgba(255, 0, 255, 0.2);
+      line-height: 1.3;
+      /* Brown magical parchment paper effect */
+      background: #e8cfa6;
+      background-image: radial-gradient(circle at 50% 50%, #e8cfa6 0%, #c49a6c 100%);
+      padding: 20px 40px;
+      border-radius: 3px;
+      border: 3px solid #8b5a2b;
+      box-shadow: 8px 8px 20px rgba(0,0,0,0.6), inset 0 0 30px rgba(139, 90, 43, 0.4);
+      position: relative;
     }
     .instructions p {
       margin: 5px 0;
