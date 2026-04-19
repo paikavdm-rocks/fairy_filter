@@ -339,8 +339,38 @@ function draw() {
   if (currentObjectTransformed && fairyFilterActive) {
     applyFairyGlow();
   }
-
+  
   pop(); // End flipped view
+  
+  // DRAW AUTHENTICATED NAME TAG OVER OUR OWN HEAD 🌟
+  // Because it's drawn directly to the canvas, PeerJS will accurately livestream this name tag 
+  // embedded into the video so everyone else can see it without Firebase database checks!
+  if (myPlayerID !== null && poses.length > 0) {
+    let pose = poses[0];
+    let nose = pose.nose;
+    if (nose && nose.confidence > 0.1) {
+      let nx = width - nose.x; // Translate raw coordinate to flipped canvas geometry
+      let ny = nose.y;
+      
+      push();
+      fill(255, 255, 255, 240);
+      noStroke();
+      textAlign(CENTER);
+      textSize(36);
+      textFont('Caveat', cursive); // Ensures elegant Fairy-tale UI parsing
+      
+      // Floating glowing nametag dropshadow geometry
+      drawingContext.shadowBlur = 10;
+      drawingContext.shadowColor = 'rgba(255, 0, 255, 0.8)';
+      
+      text(myPlayerName, nx, ny - 140);
+      
+      // Magical pinpoint anchoring the tag
+      fill(255, 215, 0, 200);
+      ellipse(nx, ny - 110, 10, 10);
+      pop();
+    }
+  }
 
   // 2. We use AI to apply the object transformation (if the spell worked)
   if (currentObjectTransformed) {
