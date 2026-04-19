@@ -9,21 +9,56 @@ const firebaseConfig = {
   appId: "1:531666119490:web:329cedbdaf92247cdef6db"
 };
 
-// Initialize Firebase Realtime Cloud
+// Initialize Firebase Realtime Cloud & Auth
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
-const myPlayerID = 'fairy_' + Math.floor(Math.random() * 10000000);
+const auth = firebase.auth();
 
+let myPlayerID = null; // Bound securely via login
+let myPlayerName = "Fairy";
 let remotePlayers = {};
 
-// Auto-delete our player from the world perfectly when the browser tab closes
-db.ref('players/' + myPlayerID).onDisconnect().remove();
-
-// Real-time listener for the entire cloud fairy lobby
+// Cloud event listener for remote players
 db.ref('players').on('value', (snapshot) => {
   const data = snapshot.val();
   if (data) remotePlayers = data;
   else remotePlayers = {};
+});
+
+// Authentication System Logic
+function loginWithEmail() {
+  let email = document.getElementById('auth-email').value;
+  let pass = document.getElementById('auth-password').value;
+  if (!email || !pass) {
+    alert("Please provide the magic words!"); return;
+  }
+  
+  auth.signInWithEmailAndPassword(email, pass).catch(err => {
+    // If account missing/wrong, magically create it immediately for friction-free UX
+    auth.createUserWithEmailAndPassword(email, pass).catch(e => alert("Login Failed: " + e.message));
+  });
+}
+
+function loginWithGoogle() {
+  let provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).catch(err => alert("Google Login Failed: " + err.message));
+}
+
+// Authentication State Listener
+auth.onAuthStateChanged(user => {
+  if (user) {
+    // User is fully authenticated globally!
+    document.getElementById('login-overlay').style.display = 'none';
+    myPlayerID = user.uid;
+    myPlayerName = user.email ? user.email.split('@')[0] : "Fairy"; // Base the name completely off the custom verified email
+    
+    // Auto-delete securely deletes our fairy footprint from the world upon window exit
+    db.ref('players/' + myPlayerID).onDisconnect().remove();
+  } else {
+    // Forced Logout
+    document.getElementById('login-overlay').style.display = 'flex';
+    myPlayerID = null;
+  }
 });
 // --------------------------------------
 
@@ -243,14 +278,14 @@ function draw() {
   drawWand();
 
   // --- MULTIPLAYER CLOUD SYNC ---
-  // Broadcast our magical location to the universe every 3 frames to save bandwidth
-  if (frameCount % 3 === 0) {
+  // Broadcast our magical location to the universe every 3 frames ONLY if authenticated securely
+  if (myPlayerID !== null && frameCount % 3 === 0) {
     let outputData = null;
     if (hands.length > 0) {
       let pos = getObjectPosition();
-      outputData = { x: pos.x, y: pos.y, aura: fairyFilterActive, timestamp: Date.now() };
+      outputData = { x: pos.x, y: pos.y, aura: fairyFilterActive, name: myPlayerName, timestamp: Date.now() };
     } else {
-      outputData = { x: mouseX, y: mouseY, aura: fairyFilterActive, timestamp: Date.now() };
+      outputData = { x: mouseX, y: mouseY, aura: fairyFilterActive, name: myPlayerName, timestamp: Date.now() };
     }
     db.ref('players/' + myPlayerID).set(outputData);
   }
@@ -294,6 +329,16 @@ function draw() {
       dust.color = color(100, 200, 255);
       particles.push(dust);
     }
+    
+    // Draw Authenticated Player Name Tag
+    push();
+    fill(255, 255, 255, 230);
+    noStroke();
+    textAlign(CENTER);
+    textSize(20); // Scale perfectly for readability
+    textFont('Caveat'); // Whimsical font for tags!
+    text(p.name || "Fairy", p.x, p.y - 70); // Display floating text strictly above the avatar
+    pop();
   }
   // ------------------------------
   
