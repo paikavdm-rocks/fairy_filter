@@ -115,7 +115,35 @@
       position: relative;
     }
     .instructions p {
-      margin: 5px 0;
+      margin: 15px 0;
+    }
+    .instruction-step {
+      opacity: 0;
+      filter: blur(10px);
+      transform: scale(1.2);
+    }
+    .fly-in {
+      animation: fairyExplosion 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+    @keyframes fairyExplosion {
+      0% {
+        opacity: 0;
+        transform: scale(3) rotate(5deg);
+        filter: blur(20px) brightness(3);
+        color: #fff;
+        text-shadow: 0 0 20px #ff00ff, 0 0 40px #00ffff, 0 0 60px #fff;
+      }
+      40% {
+        opacity: 0.8;
+        transform: scale(0.8) rotate(-2deg);
+        filter: blur(5px) brightness(1.5);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1) rotate(0deg);
+        filter: blur(0) brightness(1);
+        text-shadow: none;
+      }
     }
     #mirrors-gallery {
       display: flex;
@@ -170,11 +198,11 @@
   <header>
     <h1>The Magic Mirror</h1>
     <div class="instructions">
-      <p style="text-align: center; font-weight: bold; font-size: 1.2rem; margin-bottom: 10px;">✨ How to play ✨</p>
-      <p><b>1. Conjure:</b> Type a magical item below and cast the spell to conjure your object.</p>
-      <p><b>2. Grasp:</b> Hover your hand in front of the camera to grab the magical item.</p>
-      <p><b>3. The Aura:</b> Rapidly shake your <b>open hand</b> back and forth to reveal your glowing Fairy aura!</p>
-      <p><b>4. The Grand Finale:</b> Close your hand into a <b>tight fist</b> to cast the ultimate spell! The mirror will take a magical portrait and permanently transform you and your room into a majestic Fairy woodland.</p>
+      <p style="text-align: center; font-weight: bold; font-size: 1.2rem; margin-bottom: 15px;" class="instruction-step fly-in">✨ How to play ✨</p>
+      <p class="instruction-step fly-in" style="animation-delay: 0.5s;"><b>1. Conjure:</b> Type a magical item below and cast the spell to conjure your object.</p>
+      <p class="instruction-step fly-in" style="animation-delay: 1.5s;"><b>2. Grasp:</b> Hover your hand in front of the camera to grab the magical item.</p>
+      <p class="instruction-step fly-in" style="animation-delay: 2.5s;"><b>3. The Aura:</b> Rapidly shake your <b>open hand</b> back and forth to reveal your glowing Fairy aura!</p>
+      <p class="instruction-step fly-in" style="animation-delay: 3.5s;"><b>4. The Grand Finale:</b> Close your hand into a <b>tight fist</b> to cast the ultimate spell! The mirror will take a magical portrait and permanently transform you and your room into a majestic Fairy woodland.</p>
     </div>
   </header>
   
