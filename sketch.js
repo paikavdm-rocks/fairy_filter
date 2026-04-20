@@ -60,7 +60,7 @@ db.ref('players').on('value', (snapshot) => {
       if (isAlive && remotePeerID && myPeerID && !connectedPeers[remotePeerID]) {
         if (myPeerID > remotePeerID) {
           if (!myCanvasStream) {
-            let c = document.querySelector('canvas');
+            let c = canvas.elt; // Use specific p5 canvas element
             if (c) myCanvasStream = c.captureStream(30);
           }
           if (myCanvasStream) {
@@ -169,7 +169,7 @@ function initWebRTC() {
 
   peer.on('call', (call) => {
     if (!myCanvasStream) {
-      let c = document.querySelector('canvas');
+      let c = canvas.elt;
       if (c) myCanvasStream = c.captureStream(30);
     }
     if (myCanvasStream) {
@@ -374,16 +374,19 @@ function setup() {
   // This explicitly prevents iOS/mobile from silently dropping the AI detection completely!
   // Start capture with explicit constraints
   video = createCapture(VIDEO, () => {
-    // Ensure the stream dimensions match our canvas exactly for processing
     video.size(width, height);
+    console.log("Stream dimensions locked:", video.width, video.height);
     
-    // Start tracking ONLY once the video is reliably flowing
+    // Start tracking once stream is confirmed flowing
     if (typeof ml5 !== 'undefined') {
-      handPose = ml5.handPose(() => {
-        handPose.detectStart(video, (results) => { hands = results; });
+      handPose = ml5.handPose({ maxHands: 1 }, () => {
+        console.log("Hand tracker ready");
+        handPose.detectStart(video.elt, (results) => { hands = results; });
       });
+      
       bodyPose = ml5.bodyPose(() => {
-        bodyPose.detectStart(video, (results) => { poses = results; });
+          console.log("Body tracker ready");
+          bodyPose.detectStart(video.elt, (results) => { poses = results; });
       });
     }
   });
@@ -391,6 +394,7 @@ function setup() {
   video.elt.setAttribute('playsinline', ''); 
   video.elt.setAttribute('autoplay', 'autoplay'); 
   video.elt.setAttribute('muted', 'muted');
+  video.elt.play().catch(e => console.log("Mirror failed to ignite:", e));
   video.hide();
 
   // Create default fairy effect color (will be set properly after login)
@@ -415,9 +419,10 @@ function draw() {
   background(0);
 
   // Safety: Prevent drawing/logic if camera isn't flowing yet
-  if (!video || !video.elt || video.elt.readyState < 2) {
+  if (!video || !video.elt || video.elt.readyState < 2) { 
     fill(255);
     textAlign(CENTER);
+    textSize(24);
     text("✨ AWAKENING THE MIRROR ✨", width / 2, height / 2);
     return;
   }
@@ -480,11 +485,13 @@ function draw() {
   }
 
   // REAL-TIME FAIRY TRANSFORMATION (on the live video)
-  if (currentObjectTransformed && fairyFilterActive) {
-    tint(255, 180, 255); // Shift all live color slightly purple/fairy-like
-  }
   image(video, 0, 0, width, height);
-  noTint();
+
+  if (currentObjectTransformed && fairyFilterActive) {
+    // Replaced expensive tint() with a lightweight overlay rect
+    fill(255, 180, 255, 40);
+    rect(0, 0, width, height);
+  }
 
   // Basic real-time glowing particles around your "fairy form"
   if (currentObjectTransformed && fairyFilterActive) {
@@ -493,27 +500,32 @@ function draw() {
   
   pop(); // End flipped view
   
-  // DRAW AUTHENTICATED NAME TAG OVER OUR OWN HEAD 🌟
-  // Because it's drawn directly to the canvas, PeerJS will accurately livestream this name tag 
-  // embedded into the video so everyone else can see it without Firebase database checks!
-  if (myPlayerID !== null && poses.length > 0) {
-    let pose = poses[0];
-    let nose = pose.nose;
-    if (nose && nose.confidence > 0.1) {
-      let nx = width - nose.x; // Translate raw coordinate to flipped canvas geometry
-      let ny = nose.y;
+  if (myPlayerID !== null) {
+      let nx = width/2;
+      let ny = height/2;
+      
+      // Attempt to center over nose if tracked, fallback to center
+      if (poses && poses.length > 0) {
+          let nose = poses[0].nose;
+          if (nose && nose.confidence > 0.1) {
+            nx = width - nose.x;
+            ny = nose.y;
+          }
+      } else if (hands.length > 0 && hands[0].keypoints) {
+          let wrist = hands[0].keypoints[0];
+          nx = width - wrist.x;
+          ny = wrist.y;
+      }
       
       push();
-      fill(255, 255, 255, 240);
-      noStroke();
-      textAlign(CENTER);
-      textSize(36);
-      textFont('Caveat'); // Ensures elegant Fairy-tale UI parsing
-      
       // Floating glowing nametag dropshadow geometry
-      drawingContext.shadowBlur = 8; // Reduced for performance
+      drawingContext.shadowBlur = 8; 
       drawingContext.shadowColor = myFairyColor || 'rgba(255, 0, 255, 0.8)';
       
+      fill(255);
+      textAlign(CENTER);
+      textSize(36);
+      textFont('Caveat');
       text(myPlayerName, nx, ny - 140);
       
       // Magical pinpoint anchoring the tag
@@ -550,7 +562,6 @@ function draw() {
       text(choice.charAt(0), 0, 0);
       pop();
     }
-  }
 
   // 2. Round Specific Overlay Logic
   if (currentStep === 3) {
@@ -616,15 +627,17 @@ function draw() {
     text("🌟 AWAKENING FAIRY FORM 🌟", width / 2, height / 2);
     pop();
   }
-}
+} // Correctly end draw() function here
 
 // REAL-TIME VISUALS: This simulates turning you into a fairy in p5.
 function applyFairyGlow() {
+  if (!poses || poses.length === 0) return;
+  
   fill(wingColor);
   noStroke();
 
-  if (poses.length > 0) {
-    let pose = poses[0];
+  let pose = poses[0];
+  if (!pose) return;
 
     // We are INSIDE the push/pop flipped canvas, so x already maps to width-x on screen!
     let getFx = (kp) => kp.x;
@@ -667,15 +680,7 @@ function applyFairyGlow() {
       particles.push(new Particle(getFx(lShoulder) + random(-20, 20), lShoulder.y));
       particles.push(new Particle(getFx(rShoulder) + random(-20, 20), rShoulder.y));
     }
-  } else {
-    // Fallback if no person found
-    drawWing(width * 0.4, height * 0.4, 1);
-    drawWing(width * 0.6, height * 0.4, -1);
-    for (let i = 0; i < 3; i++) {
-      particles.push(new Particle(random(width * 0.2, width * 0.8), random(height * 0.2, height * 0.6)));
-    }
-  }
-}
+} // Correctly end applyFairyGlow() function here
 
 function drawWing(x, y, dir) {
   push();
