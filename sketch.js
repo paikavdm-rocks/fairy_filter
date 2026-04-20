@@ -180,9 +180,6 @@ function setup() {
   canvas = createCanvas(cw, ch);
   canvas.parent('p5-container');
 
-  // Initially hide the mirrors gallery until step 2
-  document.getElementById('mirrors-gallery').style.display = 'none';
-
   // Custom layout for UI underneath canvas
   let controls = createDiv();
   controls.parent('controls-container');
@@ -249,7 +246,7 @@ function setup() {
   input_image_field.style('outline', 'none');
   input_image_field.parent(spellContainer);
 
-  let castButton = createButton("✨ CAST SPELL ✨");
+  let castButton = createButton("✨ CREATE WAND ✨");
   castButton.style('padding', '12px 24px');
   castButton.style('border-radius', '30px');
   castButton.style('border', 'none');
@@ -684,24 +681,24 @@ function applyObjectTransformation() {
 }
 
 function drawWand() {
-  fill(255, 255, 200);
-  noStroke();
+  let pos = getObjectPosition();
+  let x = pos.x;
+  let y = pos.y;
 
   if (hands.length > 0) {
-    let hand = hands[0];
-    let indexFinger = hand.index_finger_tip || hand.keypoints[8];
-
-    // Flipped coordinates
-    let x = width - indexFinger.x;
-    let y = indexFinger.y;
-
-    ellipse(x, y, 15, 15);
+    // Subtle indicator sparkle
+    noStroke();
+    fill(255, 255, 200, 150);
+    ellipse(x, y, 10, 10);
 
     if (frameCount % 2 === 0) {
       particles.push(new Particle(x, y));
     }
   } else {
-    ellipse(mouseX, mouseY, 10, 10);
+    // Ambient dust around mouse
+    if (frameCount % 5 === 0) {
+      particles.push(new Particle(mouseX, mouseY));
+    }
   }
 }
 
@@ -753,8 +750,12 @@ async function castRegionalSpell(objectPrompt) {
         // Move to Step 2!
         if (currentStep === 1) {
           nextStep(2);
-          document.getElementById('mirrors-gallery').style.display = 'flex';
-          document.getElementById('mirrors-gallery').classList.add('fly-in');
+          let gallery = document.getElementById('mirrors-gallery');
+          gallery.style.opacity = '1';
+          gallery.style.height = 'auto';
+          gallery.style.overflow = 'visible';
+          gallery.style.pointerEvents = 'all';
+          gallery.classList.add('fly-in');
         }
 
         for (let i = 0; i < 60; i++) particles.push(new Particle(random(width), random(height)));
