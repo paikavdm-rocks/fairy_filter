@@ -227,6 +227,11 @@ function setup() {
   canvas = createCanvas(cw, ch);
   canvas.parent('p5-container');
 
+  // Check for secure origin (Camera requirement)
+  if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+    alert("⚠️ MAGICAL WARNING: Cameras only work on Secure Connections (HTTPS or localhost). Your mirror may remain dark!");
+  }
+
   // Custom layout for UI underneath canvas
   let controls = createDiv();
   controls.parent('controls-container');
@@ -893,9 +898,12 @@ async function castRegionalSpell(objectPrompt) {
 
     if (result.output) {
       loadImage(result.output, (incomingImage) => {
-        currentObjectTransformed = incomingImage; // The whole transformed image
+        currentObjectTransformed = incomingImage; 
         isCasting = false;
         feedback.html("Spell successful! Look at your new magical item!");
+        
+        // Hide the Wand UI
+        if (spellContainer) spellContainer.style('display', 'none');
         
         // Move to Step 3 (Round 1: Gathering)!
         if (currentStep === 2) {
@@ -920,9 +928,18 @@ function nextStep(step) {
   if (step <= currentStep) return;
   
   // Clean up old step UI
-  if (step === 4) setupCombatUI(); // Prepare buttons for Round 2
+  if (step === 3) {
+    if (spellContainer) spellContainer.style('display', 'none');
+  }
+  if (step === 4) {
+    setupCombatUI(); // Prepare buttons for Round 2
+  }
+  if (step === 5) {
+    // Hide combat buttons
+    combatButtons.forEach(b => b.hide());
+  }
 
-  // Hide current
+  // Hide current instruction
   let prev = document.getElementById('instr-' + currentStep);
   if (prev) prev.style.display = 'none';
 
@@ -982,6 +999,9 @@ function setupCombatUI() {
 function updateInstructionSteps() {
   if (currentStep === 3 && fairyMana >= 50) {
     nextStep(4);
+  } else if (currentStep === 4 && (spiritHealth <= 50 || fairyMana <= 5)) {
+    // Move to Finale if health is low or mana is spent
+    nextStep(5);
   }
 }
 
