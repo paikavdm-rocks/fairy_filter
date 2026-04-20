@@ -391,11 +391,15 @@ function setup() {
     }
   });
 
+  video.parent('controls-container'); // Attach to DOM to prevent power-saving freezes
   video.elt.setAttribute('playsinline', ''); 
   video.elt.setAttribute('autoplay', 'autoplay'); 
   video.elt.setAttribute('muted', 'muted');
-  video.elt.play().catch(e => console.log("Mirror failed to ignite:", e));
-  video.hide();
+  video.elt.style.position = 'absolute';
+  video.elt.style.top = '-9999px'; // Hide it off-screen
+  
+  video.elt.play().then(() => console.log("Video playing")).catch(e => console.log("Video Play Error:", e));
+  loop(); // Ensure loop is explicitly active
 
   // Create default fairy effect color (will be set properly after login)
   wingColor = color(200, 100, 255, 120); 
@@ -429,6 +433,8 @@ function draw() {
 
   // 1. Progress Step Logic
   updateInstructionSteps();
+  
+  if (frameCount % 60 === 0) console.log("Mirror Heartbeat: Active");
 
   if (fullFairyImage) {
     // 🌟 THE FINAL MASTERPIECE 🌟
