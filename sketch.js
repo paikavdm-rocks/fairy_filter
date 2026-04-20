@@ -23,7 +23,8 @@ let remotePlayers = {};
 let myPeerID = null;
 let peer = null;
 let connectedPeers = {};
-let currentStep = 1; // 1: Conjure, 2: Grasp, 3: Aura, 4: Finale
+let currentStep = 1; // 1: Name, 2: Wand, 3: Grasp, 4: Aura, 5: Finale
+let spellContainer;
 
 // Cloud event listener for remote players
 db.ref('players').on('value', (snapshot) => {
@@ -225,10 +226,36 @@ function setup() {
       db.ref('players/' + myPlayerID + '/name').set(myPlayerName);
     }
   });
+
+  let nameBtn = createButton("✨ SET NAME ✨");
+  nameBtn.style('padding', '10px 20px');
+  nameBtn.style('border-radius', '30px');
+  nameBtn.style('border', 'none');
+  nameBtn.style('background', 'linear-gradient(90deg, #00ffff, #ff00ff)');
+  nameBtn.style('color', 'black');
+  nameBtn.style('font-family', 'Quicksand');
+  nameBtn.style('font-weight', 'bold');
+  nameBtn.style('cursor', 'pointer');
+  nameBtn.parent(nameContainer);
+  nameBtn.mousePressed(() => {
+    if (currentStep === 1) {
+      nextStep(2);
+      nameBtn.hide();
+      spellContainer.style('display', 'flex');
+      
+      // Reveal the gallery
+      let gallery = document.getElementById('mirrors-gallery');
+      gallery.style.opacity = '1';
+      gallery.style.height = 'auto';
+      gallery.style.overflow = 'visible';
+      gallery.style.pointerEvents = 'all';
+      gallery.classList.add('fly-in');
+    }
+  });
   // -------------------------
 
-  let spellContainer = createDiv();
-  spellContainer.style('display', 'flex');
+  spellContainer = createDiv();
+  spellContainer.style('display', 'none'); // Hidden until named
   spellContainer.style('gap', '10px');
   spellContainer.parent(inputRow);
 
@@ -747,15 +774,9 @@ async function castRegionalSpell(objectPrompt) {
         isCasting = false;
         feedback.html("Spell successful! Look at your new magical item!");
         
-        // Move to Step 2!
-        if (currentStep === 1) {
-          nextStep(2);
-          let gallery = document.getElementById('mirrors-gallery');
-          gallery.style.opacity = '1';
-          gallery.style.height = 'auto';
-          gallery.style.overflow = 'visible';
-          gallery.style.pointerEvents = 'all';
-          gallery.classList.add('fly-in');
+        // Move to Step 3!
+        if (currentStep === 2) {
+          nextStep(3);
         }
 
         for (let i = 0; i < 60; i++) particles.push(new Particle(random(width), random(height)));
@@ -791,10 +812,10 @@ function nextStep(step) {
 }
 
 function updateInstructionSteps() {
-  if (currentStep === 2 && hands.length > 0) {
-    nextStep(3);
-  } else if (currentStep === 3 && fairyFilterActive) {
+  if (currentStep === 3 && hands.length > 0) {
     nextStep(4);
+  } else if (currentStep === 4 && fairyFilterActive) {
+    nextStep(5);
   }
 }
 
