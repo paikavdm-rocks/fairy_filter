@@ -467,7 +467,7 @@ function draw() {
       textFont('Caveat'); // Ensures elegant Fairy-tale UI parsing
       
       // Floating glowing nametag dropshadow geometry
-      drawingContext.shadowBlur = 15;
+      drawingContext.shadowBlur = 8; // Reduced for performance
       drawingContext.shadowColor = myFairyColor || 'rgba(255, 0, 255, 0.8)';
       
       text(myPlayerName, nx, ny - 140);
@@ -541,8 +541,22 @@ function draw() {
   
   // Casting Overlay for Regional Spell
   if (isCasting) {
-    fill(255, 255, 255, 200);
-    rect(0, 0, width, height);
+    // Elegant Magic Spinner instead of a full freeze
+    push();
+    translate(width/2, height/2);
+    rotate(frameCount * 0.1);
+    noFill();
+    strokeWeight(10);
+    stroke(255, 255, 255, 100);
+    ellipse(0, 0, 100, 100);
+    stroke(myFairyColor || color(0, 255, 255));
+    arc(0, 0, 100, 100, 0, PI);
+    pop();
+    
+    fill(255);
+    textAlign(CENTER);
+    textSize(24);
+    text("MAGIC IS CRAFTING...", width/2, height/2 + 80);
   }
 
   // Casting Overlay for Full Self Spell
@@ -790,10 +804,10 @@ function drawWand() {
     
     // Core glow at the wand tip
     push();
-    drawingContext.shadowBlur = 30;
+    drawingContext.shadowBlur = 15; // Reduced from 30
     drawingContext.shadowColor = myFairyColor || 'rgba(0, 255, 255, 0.8)';
     noStroke();
-    fill(255, 255, 255, 220); // White core within colored glow
+    fill(255, 255, 255, 220); 
     ellipse(x, y, 12, 12);
     pop();
   } else {
@@ -810,12 +824,13 @@ async function castRegionalSpell(objectPrompt) {
   isCasting = true;
   feedback.html("Isolating the object... turning you into a Fairy...");
 
-  // Capture flipped live feed for the AI
+  // Re-use or Create a dedicated offscreen capture to prevent memory spikes
   let offscreen = createGraphics(width, height);
   offscreen.translate(width, 0);
   offscreen.scale(-1, 1);
   offscreen.image(video, 0, 0, width, height);
   let imgBase64 = offscreen.elt.toDataURL();
+  offscreen.remove(); // Dispose immediately after use to free memory
 
   // Updated Prompting for REGIONAL transformation. 
   // We use Stable Diffusion XL in-painting/segmentation.
@@ -856,10 +871,14 @@ async function castRegionalSpell(objectPrompt) {
 
         for (let i = 0; i < 60; i++) particles.push(new Particle(random(width), random(height)));
       });
+    } else {
+      isCasting = false;
+      feedback.html("The spirits are busy... try creating your wand again!");
     }
   } catch (error) {
+    console.error("AI Error:", error);
     isCasting = false;
-    feedback.html("The transformation spell failed! Make sure you are holding the object clearly!");
+    feedback.html("Magical interference detected! Try your wand creation again.");
   }
 }
 
