@@ -890,7 +890,7 @@ function nextStep(step) {
 }
 
 function setupCombatUI() {
-  let types = ['Fire', 'Water', 'Grass'];
+  let types = ['Fire', 'Water', 'Earth'];
   types.forEach(type => {
     let btn = createButton(type);
     btn.parent(spellContainer);
@@ -908,6 +908,22 @@ function setupCombatUI() {
       btn.style('background', 'rgba(255, 100, 255, 0.5)');
     });
     combatButtons.push(btn);
+  });
+
+  let megaBtn = createButton("🌟 MEGA SPELL (30 SPIRIT) 🌟");
+  megaBtn.parent(spellContainer);
+  megaBtn.style('padding', '12px 24px');
+  megaBtn.style('border-radius', '30px');
+  megaBtn.style('border', 'none');
+  megaBtn.style('background', 'linear-gradient(90deg, #ff0000, #ff00ff)');
+  megaBtn.style('color', 'white');
+  megaBtn.style('font-family', 'Quicksand');
+  megaBtn.style('font-weight', 'bold');
+  megaBtn.style('cursor', 'pointer');
+  megaBtn.mousePressed(() => {
+    isMegaSpell = !isMegaSpell;
+    megaBtn.style('transform', isMegaSpell ? 'scale(1.1)' : 'scale(1)');
+    megaBtn.style('box-shadow', isMegaSpell ? '0 0 20px #ff0000' : 'none');
   });
 }
 
@@ -952,10 +968,17 @@ function handleSpiritOrbs() {
 }
 
 function mousePressed() {
-  let cost = 5;
+  let costMana = 5;
+  let costSpirit = 0;
   let damage = 20;
 
-  if (currentStep === 4 && fairyMana >= cost) {
+  if (isMegaSpell) {
+    costMana = 0;
+    costSpirit = 30; // Sacrifice life for power!
+    damage = 50; 
+  }
+
+  if (currentStep === 4 && fairyMana >= costMana && spiritHealth >= costSpirit) {
     // Check if we aimed at a remote mirror
     let elements = document.elementsFromPoint(mouseX, mouseY);
     elements.forEach(el => {
@@ -966,16 +989,22 @@ function mousePressed() {
           if (remotePlayers[pID].peerID === hitID) {
             let targetChoice = remotePlayers[pID].choice || 'Fire';
             
-            // SIMPLIFIED RPS
+            // RPS RESOLUTION
             let win = false;
             let draw = false;
-            if (mySpellChoice === targetChoice) draw = true;
-            else if (mySpellChoice === 'Fire' && targetChoice === 'Grass') win = true;
-            else if (mySpellChoice === 'Grass' && targetChoice === 'Water') win = true;
-            else if (mySpellChoice === 'Water' && targetChoice === 'Fire') win = true;
+            
+            if (isMegaSpell) {
+              win = true; // Mega Spell bypasses RPS!
+            } else {
+              if (mySpellChoice === targetChoice) draw = true;
+              else if (mySpellChoice === 'Fire' && targetChoice === 'Earth') win = true;
+              else if (mySpellChoice === 'Earth' && targetChoice === 'Water') win = true;
+              else if (mySpellChoice === 'Water' && targetChoice === 'Fire') win = true;
+            }
 
             if (win) {
               db.ref('players/' + pID + '/spirit').set(max(0, (remotePlayers[pID].spirit || 100) - damage));
+              if (isMegaSpell) feedback.html("ANCIENT SPIRIT BLASTED!");
             } else if (draw) {
               db.ref('players/' + pID + '/spirit').set(max(0, (remotePlayers[pID].spirit || 100) - 5));
               spiritHealth = max(0, spiritHealth - 5);
@@ -984,7 +1013,9 @@ function mousePressed() {
               feedback.html("You were countered! Energy backfire!");
             }
 
-            fairyMana -= cost;
+            fairyMana -= costMana;
+            spiritHealth -= costSpirit;
+
             if (myPlayerID) {
               db.ref('players/' + myPlayerID + '/mana').set(fairyMana);
               db.ref('players/' + myPlayerID + '/spirit').set(spiritHealth);
@@ -997,12 +1028,15 @@ function mousePressed() {
 
     // Visual blast burst
     let pos = getObjectPosition();
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < (isMegaSpell ? 100 : 30); i++) {
         let p = new Particle(pos.x, pos.y);
-        p.vx = (mouseX - pos.x) * 0.12 + random(-3, 3);
-        p.vy = (mouseY - pos.y) * 0.12 + random(-3, 3);
+        p.color = isMegaSpell ? color(255, 0, 0) : myFairyColor;
+        p.vx = (mouseX - pos.x) * 0.15 + random(-4, 4);
+        p.vy = (mouseY - pos.y) * 0.15 + random(-4, 4);
         particles.push(p);
     }
+    
+    if (isMegaSpell) isMegaSpell = false; // Reset after use
   }
 }
 
