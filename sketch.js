@@ -484,7 +484,7 @@ function draw() {
       textAlign(CENTER);
       textSize(14);
       fill(255, 255, 255, 200);
-      text(`MANA: ${fairyMana} | SPIRIT: ${spiritHealth}%`, 0, 0);
+      text(`SPELL: ${fairyMana} | HEALTH: ${spiritHealth}%`, 0, 0);
       
       // Health Bar
       fill(50, 0, 50, 150);
@@ -910,7 +910,7 @@ function setupCombatUI() {
     combatButtons.push(btn);
   });
 
-  let megaBtn = createButton("🌟 MEGA SPELL (20 SPIRIT) 🌟");
+  let megaBtn = createButton("🌟 MEGA SPELL (20 HEALTH) 🌟");
   megaBtn.parent(spellContainer);
   megaBtn.style('padding', '12px 24px');
   megaBtn.style('border-radius', '30px');
@@ -1004,7 +1004,7 @@ function mousePressed() {
 
             if (win) {
               db.ref('players/' + pID + '/spirit').set(max(0, (remotePlayers[pID].spirit || 100) - damage));
-              if (isMegaSpell) feedback.html("ANCIENT SPIRIT BLASTED!");
+              if (isMegaSpell) feedback.html("ANCIENT POWER BLASTED!");
             } else if (draw) {
               db.ref('players/' + pID + '/spirit').set(max(0, (remotePlayers[pID].spirit || 100) - 5));
               spiritHealth = max(0, spiritHealth - 5);
