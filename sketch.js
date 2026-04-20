@@ -338,23 +338,23 @@ function setup() {
   // Wait for the strict mobile camera permissions to be approved AND the 
   // media stream to safely exist before booting up the intensive ML5 trackers. 
   // This explicitly prevents iOS/mobile from silently dropping the AI detection completely!
-  video = createCapture(constraints, function () {
+  // Start capture with explicit constraints
+  video = createCapture(constraints, () => {
+    console.log("Cam ready");
+    video.elt.play(); // Force play
+    
+    // Start tracking once stream is confirmed
     handPose = ml5.handPose(() => {
-      handPose.detectStart(video, (results) => {
-        hands = results;
-      });
+      handPose.detectStart(video, (results) => { hands = results; });
     });
-
     bodyPose = ml5.bodyPose(() => {
-      bodyPose.detectStart(video, (results) => {
-        poses = results;
-      });
+      bodyPose.detectStart(video, (results) => { poses = results; });
     });
   });
 
-  video.elt.setAttribute('playsinline', ''); // Critical for iOS
-  video.elt.setAttribute('autoplay', '');    // Critical for iOS
-  video.elt.setAttribute('muted', '');       // Critical for iOS
+  video.elt.setAttribute('playsinline', ''); 
+  video.autoplay = true; 
+  video.muted = true;
   video.hide();
 
   // Create default fairy effect color (will be set properly after login)
@@ -377,6 +377,14 @@ function hashStringToColor(str) {
 
 function draw() {
   background(0);
+
+  // Safety: Prevent drawing/logic if camera isn't flowing yet
+  if (!video || !video.elt || video.elt.readyState < 2) {
+    fill(255);
+    textAlign(CENTER);
+    text("✨ AWAKENING THE MIRROR ✨", width / 2, height / 2);
+    return;
+  }
 
   // 1. Progress Step Logic
   updateInstructionSteps();
