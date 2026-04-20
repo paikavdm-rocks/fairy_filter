@@ -910,7 +910,7 @@ function setupCombatUI() {
     combatButtons.push(btn);
   });
 
-  let megaBtn = createButton("🌟 MEGA SPELL (30 SPIRIT) 🌟");
+  let megaBtn = createButton("🌟 MEGA SPELL (20 SPIRIT) 🌟");
   megaBtn.parent(spellContainer);
   megaBtn.style('padding', '12px 24px');
   megaBtn.style('border-radius', '30px');
@@ -974,8 +974,8 @@ function mousePressed() {
 
   if (isMegaSpell) {
     costMana = 0;
-    costSpirit = 30; // Sacrifice life for power!
-    damage = 50; 
+    costSpirit = 20; // Slightly lower sacrifice
+    damage = 35; // Slightly lower damage
   }
 
   if (currentStep === 4 && fairyMana >= costMana && spiritHealth >= costSpirit) {
