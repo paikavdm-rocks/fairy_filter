@@ -36,10 +36,10 @@ let currentRealm = 'emerald';
 
 // --- REALM THEMES ---
 const themes = {
-    emerald: { primary: '#50fa7b', secondary: '#f1fa8c', bg: '#1a2a22', title: 'The Emerald Kingdom', lore: '"Where every fairy leaves a footprint in the stars..."'},
-    ruby: { primary: '#ff5555', secondary: '#ffb86c', bg: '#2a1a1a', title: 'The Ruby Empire', lore: '"Fire and blood, tempered in the heart of a star."' },
-    jade: { primary: '#8be9fd', secondary: '#50fa7b', bg: '#1a262a', title: 'The Jade Coast', lore: '"Serenity flowing like a river of liquid light."' },
-    amethyst: { primary: '#bd93f9', secondary: '#ff79c6', bg: '#1e1a2a', title: 'The Amethyst Void', lore: '"Secrets whispered in the silence between dimensions."' }
+    emerald: { primary: '#50fa7b', secondary: '#f1fa8c', bg: '#1a2a22', title: 'The Whispering Grove', lore: '"Where every fairy leaves a footprint in the stars..."'},
+    ruby: { primary: '#ff5555', secondary: '#ffb86c', bg: '#2a1a1a', title: 'The Crimson Spire', lore: '"Fire and blood, tempered in the heart of a star."' },
+    jade: { primary: '#8be9fd', secondary: '#50fa7b', bg: '#1a262a', title: 'The Frostfire Lagoon', lore: '"Serenity flowing like a river of liquid light."' },
+    amethyst: { primary: '#bd93f9', secondary: '#ff79c6', bg: '#1e1a2a', title: 'The Astral Void', lore: '"Secrets whispered in the silence between dimensions."' }
 };
 
 // --- DOM ELEMENTS ---
