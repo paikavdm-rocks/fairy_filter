@@ -14,7 +14,9 @@ import {
     query, 
     orderBy, 
     serverTimestamp,
-    limit
+    limit,
+    where,
+    getDocs
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // --- FIREBASE SETUP ---
@@ -62,7 +64,6 @@ let draggingItem = null;
 let capture;
 let backgroundImgs = {};
 let bodypix;
-let canvasReady = false;
 
 const sketch = (p) => {
     p.preload = () => {
@@ -77,16 +78,10 @@ const sketch = (p) => {
         const w = container ? container.offsetWidth : 800;
         const canvas = p.createCanvas(w > 0 ? w : 800, 550);
         canvas.parent('canvas-container');
-        
         capture = p.createCapture(p.VIDEO);
         capture.size(320, 240);
         capture.hide();
-        
-        bodypix = ml5.bodyPix(capture, { multiplier: 0.75, outputStride: 16, segmentationThreshold: 0.5 }, () => {
-            console.log('BodyPix ready');
-            canvasReady = true;
-        });
-        
+        bodypix = ml5.bodyPix(capture, { multiplier: 0.75, outputStride: 16, segmentationThreshold: 0.5 }, () => console.log('BodyPix ready'));
         applyTheme(currentRealm);
         initUIListeners();
     };
@@ -94,7 +89,6 @@ const sketch = (p) => {
     p.draw = () => {
         let currentBg = backgroundImgs[currentRealm];
         p.background(themes[currentRealm].bg);
-        
         if (currentBg && currentBg.width > 1) {
             let canvasRatio = p.width / p.height;
             let imgRatio = currentBg.width / currentBg.height;
@@ -103,7 +97,6 @@ const sketch = (p) => {
             else { sw = currentBg.width; sh = currentBg.width / canvasRatio; sx = 0; sy = (currentBg.height - sh) / 2; }
             p.image(currentBg, 0, 0, p.width, p.height, sx, sy, sw, sh);
         }
-        
         items.forEach(item => {
             p.push(); p.translate(item.x, item.y);
             if (p.dist(p.mouseX, p.mouseY, item.x, item.y) < 50) p.scale(1.1);
@@ -139,40 +132,23 @@ const sketch = (p) => {
     p.keyPressed = () => { if (p.keyCode === p.DELETE || p.keyCode === p.BACKSPACE) items = items.filter(i => p.dist(p.mouseX, p.mouseY, i.x, i.y) > 50); };
 
     window.addSticker = (url, type, acc = null) => {
-        p.loadImage(url, (img) => {
-            makeTransparent(img);
-            items.push({ x: p.width / 2, y: p.height / 2, type: type, img: img, dataUrl: img.canvas?.toDataURL() || url, accessory: acc });
-        });
+        p.loadImage(url, (img) => { makeTransparent(img); items.push({ x: p.width / 2, y: p.height / 2, type: type, img: img, dataUrl: img.canvas?.toDataURL() || url, accessory: acc }); });
     };
 
     window.takeSelfie = () => {
-        console.log("TakeSelfie called!");
         if (!bodypix) return alert("Mirror warming up...");
-        const btn = getEl('selfie-btn');
-        if (btn) { btn.innerText = "CAPTURING SPIRIT..."; btn.style.opacity = "0.5"; }
-        
+        const btn = getEl('selfie-btn'); if (btn) { btn.innerText = "CAPTURING SPIRIT..."; btn.style.opacity = "0.5"; }
         bodypix.segment(capture, (error, result) => {
             if (btn) { btn.innerText = "📸 CAPTURE SPIRIT"; btn.style.opacity = "1"; }
-            if (error) return console.error(error);
-            
-            let buff = p.createGraphics(320, 240);
-            buff.image(capture, 0, 0); buff.loadPixels();
+            if (error) return;
+            let buff = p.createGraphics(320, 240); buff.image(capture, 0, 0); buff.loadPixels();
             for (let i = 0; i < buff.pixels.length; i += 4) { if (result.mask.data[i/4] === 0) buff.pixels[i+3] = 0; }
             buff.updatePixels();
-            
-            let finalBuff = p.createGraphics(200, 200);
-            finalBuff.translate(200, 0); finalBuff.scale(-1, 1);
-            finalBuff.image(buff, -60, 0, 320, 240);
-            
-            const accs = ['wings', 'crown', 'ears', 'necklace', null];
-            const randomAcc = accs[Math.floor(Math.random() * accs.length)];
+            let finalBuff = p.createGraphics(200, 200); finalBuff.translate(200, 0); finalBuff.scale(-1, 1); finalBuff.image(buff, -60, 0, 320, 240);
+            const accs = ['wings', 'crown', 'ears', 'necklace', null]; const randomAcc = accs[Math.floor(Math.random() * accs.length)];
             const d = finalBuff.canvas.toDataURL();
-            
             items.push({ x: p.width / 2, y: p.height / 2, type: 'selfie', img: finalBuff.get(), dataUrl: d, accessory: randomAcc });
-            if (currentUser) {
-                addDoc(collection(db, "spirit_stickers"), { creator: currentUser.email.split('@')[0], dataUrl: d, createdAt: serverTimestamp(), accessory: randomAcc })
-                .catch(e => console.error("Firestore Error:", e));
-            }
+            if (currentUser) addDoc(collection(db, "spirit_stickers"), { creator: currentUser.email.split('@')[0], dataUrl: d, createdAt: serverTimestamp(), accessory: randomAcc });
         });
     };
 
@@ -181,30 +157,17 @@ const sketch = (p) => {
         for (let i = 0; i < img.pixels.length; i += 4) { if (img.pixels[i] > 240 && img.pixels[i+1] > 240 && img.pixels[i+2] > 240) img.pixels[i+3] = 0; }
         img.updatePixels();
     }
-    p.windowResized = () => {
-        const container = getEl('canvas-container');
-        if (container && container.offsetWidth > 0) p.resizeCanvas(container.offsetWidth, 550);
-    };
+    p.windowResized = () => { const container = getEl('canvas-container'); if (container && container.offsetWidth > 0) p.resizeCanvas(container.offsetWidth, 550); };
 };
-
 const myP5 = new p5(sketch);
 
-// --- UI LISTENERS (ROBUST) ---
+// --- UI LISTENERS ---
 function initUIListeners() {
-    console.log("Initializing UI Listeners...");
-    
-    // Delegation for Selfie Button
-    document.body.addEventListener('click', (e) => {
-        if (e.target.id === 'selfie-btn' || e.target.closest('#selfie-btn')) {
-            console.log("Selfie button clicked!");
-            window.takeSelfie();
-        }
-    });
+    document.body.addEventListener('click', (e) => { if (e.target.id === 'selfie-btn' || e.target.closest('#selfie-btn')) window.takeSelfie(); });
 
     const aiBtn = getEl('ai-btn');
     if (aiBtn) aiBtn.onclick = async () => {
-        const aiPrompt = getEl('ai-prompt');
-        const aiCreationsBank = getEl('ai-creations');
+        const aiPrompt = getEl('ai-prompt'); const aiCreationsBank = getEl('ai-creations');
         const pr = aiPrompt.value; if (!pr) return;
         const loader = document.createElement('div');
         loader.innerHTML = "🔮"; loader.style = "width:50px; height:50px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.1); border-radius:50%; animation: spin 2s linear infinite;";
@@ -240,13 +203,10 @@ function initUIListeners() {
             btn.style.borderColor = 'white';
             currentRealm = btn.dataset.realm;
             applyTheme(currentRealm);
-            // Picking a realm now automatically joins the kingdom
-            if (getEl('auth-overlay')) getEl('auth-overlay').classList.add('hidden');
         };
     });
 
-    const loginBtn = getEl('login-btn');
-    const signupBtn = getEl('signup-btn');
+    const loginBtn = getEl('login-btn'); const signupBtn = getEl('signup-btn');
     if (loginBtn) loginBtn.onclick = async () => { 
         const email = getEl('email').value; const pass = getEl('password').value;
         try { await signInWithEmailAndPassword(auth, email, pass); } catch (e) { alert(e.message); } 
@@ -258,11 +218,11 @@ function initUIListeners() {
 
     const saveBtn = getEl('save-btn');
     if (saveBtn) saveBtn.onclick = async () => {
-        if (!currentUser) return alert("You must be an Elder (Logged In) to commit lore!");
+        if (!currentUser) return alert("You must be logged in to commit lore!");
         saveBtn.innerText = "RECORDING...";
         try {
             await addDoc(collection(db, "scenes"), {
-                uid: currentUser.uid, realm: currentRealm,
+                uid: currentUser.uid, creator: currentUser.email.split('@')[0], realm: currentRealm,
                 arrangement: items.map(i => ({ x: i.x, y: i.y, type: i.type, dataUrl: i.dataUrl || null, accessory: i.accessory || null })),
                 createdAt: serverTimestamp()
             }); alert("Recorded!");
@@ -270,17 +230,23 @@ function initUIListeners() {
         saveBtn.innerText = "RECORD SCENE";
     };
 }
-window.logout = () => signOut(auth).then(() => location.reload());
 
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
     if (user) {
-        currentUser = user; if (getEl('auth-overlay')) getEl('auth-overlay').classList.add('hidden');
-        if (getEl('user-info')) getEl('user-info').classList.remove('hidden');
-        if (getEl('user-display')) getEl('user-display').innerText = `Elder ${user.email.split('@')[0]}`;
+        currentUser = user; getEl('auth-overlay').classList.add('hidden'); getEl('user-info').classList.remove('hidden');
+        getEl('user-display').innerText = `Elder ${user.email.split('@')[0]}`;
         loadGallery(); listenToSharedStickers();
+        
+        // Auto-load User's Latest Work
+        const q = query(collection(db, "scenes"), where("uid", "==", user.uid), orderBy("createdAt", "desc"), limit(1));
+        const sn = await getDocs(q);
+        if (!sn.empty) {
+            const d = sn.docs[0].data();
+            currentRealm = d.realm || 'emerald'; applyTheme(currentRealm);
+            items = d.arrangement.map(i => ({ ...i, img: i.dataUrl ? myP5.loadImage(i.dataUrl) : null }));
+        }
     } else {
-        currentUser = null; if (getEl('auth-overlay')) getEl('auth-overlay').classList.remove('hidden');
-        if (getEl('user-info')) getEl('user-info').classList.add('hidden');
+        currentUser = null; getEl('auth-overlay').classList.remove('hidden'); getEl('user-info').classList.add('hidden');
     }
 });
 
@@ -300,14 +266,14 @@ function listenToSharedStickers() {
 }
 
 function loadGallery() {
-    onSnapshot(query(collection(db, "scenes"), orderBy("createdAt", "desc"), limit(5)), (sn) => {
+    onSnapshot(query(collection(db, "scenes"), orderBy("createdAt", "desc"), limit(20)), (sn) => {
         const gal = getEl('scene-gallery');
         if (gal) {
             gal.innerHTML = "";
             sn.forEach(doc => {
                 const d = doc.data(); const card = document.createElement('div');
                 card.className = 'scene-card'; card.style.borderColor = themes[d.realm || 'emerald'].primary;
-                card.innerHTML = `<h3>${d.realm || 'emerald'} Realm</h3>`;
+                card.innerHTML = `<h3>${d.creator}'s ${d.realm || 'emerald'} Realm</h3>`;
                 card.onclick = () => {
                     currentRealm = d.realm || 'emerald'; applyTheme(currentRealm);
                     items = d.arrangement.map(i => ({ ...i, img: i.dataUrl ? myP5.loadImage(i.dataUrl) : null }));
@@ -317,4 +283,5 @@ function loadGallery() {
         }
     });
 }
+window.logout = () => signOut(auth).then(() => location.reload());
 function getEmoji(t) { return { 'fairy': '🧚', 'mushroom': '🍄', 'crystal': '💎', 'flower': '🌸', 'star': '⭐', 'wand': '🪄' }[t] || '✨'; }
