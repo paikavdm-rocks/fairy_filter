@@ -104,29 +104,36 @@ window.syncRealmItems = () => {
 window.listenToRealm = (realmName) => {
     if (unsubRealm) unsubRealm();
     unsubRealm = onSnapshot(doc(db, "scenes", "live_realm_" + realmName), (snapshot) => {
-        if (!snapshot.exists()) {
-            if (currentUser) setDoc(doc(db, "scenes", "live_realm_" + realmName), { items: [] });
-            return;
-        }
-        syncingFromServer = true;
-        const data = snapshot.data();
-        if (data.items) {
-            const remoteIds = data.items.map(r => r.id);
-            items = items.filter(i => remoteIds.includes(i.id) || i === draggingItem || i === chargingItem);
-            
-            data.items.forEach(rmt => {
-                const loc = items.find(i => i.id === rmt.id);
-                if (loc) {
-                    if (loc !== draggingItem) {
-                        loc.x = rmt.x; loc.y = rmt.y; loc.scale = rmt.scale;
+        try {
+            if (!snapshot.exists()) {
+                if (currentUser) setDoc(doc(db, "scenes", "live_realm_" + realmName), { items: [] });
+                return;
+            }
+            syncingFromServer = true;
+            const data = snapshot.data();
+            if (data.items) {
+                const remoteIds = data.items.map(r => r.id);
+                items = items.filter(i => remoteIds.includes(i.id) || i === draggingItem || i === chargingItem);
+                
+                data.items.forEach(rmt => {
+                    const loc = items.find(i => i.id === rmt.id);
+                    if (loc) {
+                        if (loc !== draggingItem) {
+                            loc.x = rmt.x; loc.y = rmt.y; loc.scale = rmt.scale;
+                        }
+                    } else {
+                        const newItem = { ...rmt, img: rmt.dataUrl && window.myP5 ? window.myP5.loadImage(rmt.dataUrl, (loaded) => loaded.mask ? null : window.makeTransparent(loaded)) : null };
+                        items.push(newItem);
                     }
-                } else {
-                    const newItem = { ...rmt, img: rmt.dataUrl ? myP5.loadImage(rmt.dataUrl, (loaded) => loaded.mask ? null : window.makeTransparent(loaded)) : null };
-                    items.push(newItem);
-                }
-            });
+                });
+            }
+            syncingFromServer = false;
+        } catch (err) {
+            alert("Sync Read Error: " + err.message);
+            console.error(err);
         }
-        syncingFromServer = false;
+    }, (error) => {
+        alert("Firestore Network Guard: " + error.message);
     });
 };
 
@@ -394,7 +401,7 @@ const sketch = (p) => {
         }
     };
 };
-const myP5 = new p5(sketch);
+window.myP5 = new p5(sketch);
 
 // --- UI LISTENERS ---
 function initUIListeners() {
