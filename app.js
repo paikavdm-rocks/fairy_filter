@@ -256,7 +256,7 @@ function initUIListeners() {
 
     const saveBtn = getEl('save-btn');
     if (saveBtn) saveBtn.onclick = async () => {
-        if (!currentUser) return;
+        if (!currentUser) return alert("You must be an Elder (Logged In) to commit lore!");
         saveBtn.innerText = "RECORDING...";
         try {
             await addDoc(collection(db, "scenes"), {
@@ -267,7 +267,13 @@ function initUIListeners() {
         } catch (e) { alert(e.message); }
         saveBtn.innerText = "RECORD SCENE";
     };
+
+    const guestBtn = getEl('enter-guest-btn');
+    if (guestBtn) guestBtn.onclick = () => {
+        getEl('auth-overlay').classList.add('hidden');
+    };
 }
+window.logout = () => signOut(auth).then(() => location.reload());
 
 onAuthStateChanged(auth, (user) => {
     if (user) {
