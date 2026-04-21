@@ -185,14 +185,20 @@ const sketch = (p) => {
     p.mousePressed = () => {
         if (p.mouseX < 0 || p.mouseX > p.width || p.mouseY < 0 || p.mouseY > p.height) return;
         let f = false;
-        // Check for dragging first
+        // Check for dragging or erasing first
         for (let i = items.length - 1; i >= 0; i--) { 
             const s = items[i].scale || 1;
             if (p.dist(p.mouseX, p.mouseY, items[i].x, items[i].y) < 50 * s) { 
-                draggingItem = items[i]; f = true; break; 
+                f = true; 
+                if (selectedType === 'eraser') {
+                    items.splice(i, 1);
+                    return; // deleted, do nothing else
+                }
+                draggingItem = items[i]; 
+                break; 
             } 
         }
-        if (!f) {
+        if (!f && selectedType !== 'eraser') {
             // Start charging new item
             chargingItem = { x: p.mouseX, y: p.mouseY, type: selectedType };
             chargeStartTime = p.millis();
