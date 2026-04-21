@@ -169,7 +169,7 @@ const sketch = (p) => {
         // Draw charging ring
         if (chargingItem && !draggingItem) {
             const holdTime = p.millis() - chargeStartTime;
-            const chargeScale = p.constrain(p.map(holdTime, 0, 2000, 1, 4), 1, 4);
+            const chargeScale = p.constrain(p.map(holdTime, 0, 2000, 0.5, 4), 0.5, 4);
             p.push();
             p.noFill();
             p.stroke(themes[currentRealm].primary);
@@ -202,7 +202,7 @@ const sketch = (p) => {
     p.mouseReleased = () => { 
         if (chargingItem && !draggingItem) {
             const holdTime = p.millis() - chargeStartTime;
-            const finalScale = p.constrain(p.map(holdTime, 0, 2000, 1, 4), 1, 4);
+            const finalScale = p.constrain(p.map(holdTime, 0, 2000, 0.5, 4), 0.5, 4);
             items.push({ x: chargingItem.x, y: chargingItem.y, type: chargingItem.type, scale: finalScale });
         }
         chargingItem = null;
@@ -220,13 +220,26 @@ const sketch = (p) => {
         if (btn) { btn.innerText = "TURNING ON CAMERA..."; btn.style.opacity = "0.5"; }
         cameraStarted = true;
         capture = p.createCapture(p.VIDEO, () => {
-            capture.size(320, 240); capture.hide();
+            capture.size(320, 240);
+            
+            // Show preview underneath button
+            const preview = getEl('webcam-preview');
+            if (preview) {
+                preview.classList.remove('hidden');
+                capture.parent(preview); // Embeds <video> element
+                capture.elt.style.width = '100%';
+                capture.elt.style.display = 'block';
+                capture.elt.style.transform = 'scaleX(-1)'; // Mirror feed
+            } else {
+                capture.hide();
+            }
+
             if (btn) btn.innerText = "LOADING MAGIC...";
             bodypix = ml5.bodyPix(capture, { multiplier: 0.75, outputStride: 16, segmentationThreshold: 0.5 }, () => {
                 console.log('BodyPix ready');
                 cameraReady = true;
-                if (btn) { btn.innerText = "📸 CAPTURE FACE STICKER"; btn.style.opacity = "1"; }
-                window.takeSelfie();
+                // Don't auto-take selfie! Tell user to click again to snap it.
+                if (btn) { btn.innerText = "📸 SNAP FACE STICKER!"; btn.style.opacity = "1"; }
             });
         });
     };
