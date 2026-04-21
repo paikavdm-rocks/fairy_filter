@@ -1,244 +1,287 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fairytopia Battles</title>
-  <!-- Firebase Serverless Networking & Auth -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-  
-  <!-- WebRTC Livestreaming -->
-  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-  
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/addons/p5.sound.min.js"></script>
-  <script src="https://unpkg.com/ml5@1/dist/ml5.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Quicksand:wght@400;700&family=Caveat:wght@600&display=swap" rel="stylesheet">
-  <style>
-    /* Full-Screen Login Overlay */
-    #login-overlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(20, 0, 40, 0.95);
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      z-index: 10000;
-    }
-    .login-box {
-      background: #e8cfa6;
-      background-image: radial-gradient(circle at 50% 50%, #e8cfa6 0%, #c49a6c 100%);
-      padding: 40px;
-      border-radius: 10px;
-      border: 3px solid #8b5a2b;
-      box-shadow: 0 0 40px rgba(255, 0, 255, 0.6), inset 0 0 30px rgba(139, 90, 43, 0.4);
-      text-align: center;
-      max-width: 400px;
-      width: 85%;
-    }
-    .login-box h2 {
-      font-family: 'Cinzel Decorative', cursive;
-      color: #4a2e15;
-      margin-top: 0;
-      font-size: 2rem;
-    }
-    .login-input {
-      width: 100%;
-      padding: 12px;
-      margin: 10px 0;
-      border-radius: 5px;
-      border: 2px solid #8b5a2b;
-      background: rgba(255,255,255,0.85);
-      font-family: 'Quicksand', sans-serif;
-      box-sizing: border-box;
-      font-size: 1.1rem;
-    }
-    .login-btn {
-      background: linear-gradient(90deg, #ff00ff, #00ffff);
-      color: black;
-      border: none;
-      padding: 14px 20px;
-      border-radius: 30px;
-      font-family: 'Quicksand', sans-serif;
-      font-weight: bold;
-      cursor: pointer;
-      margin-top: 15px;
-      width: 100%;
-      font-size: 1.1rem;
-      box-shadow: 0 0 15px rgba(255,0,255,0.4);
-    }
-    
-    body {
-      margin: 0;
-      padding: 0;
-      background: #2a0845 url('fairy_bg.png') no-repeat center center fixed;
-      background-size: cover;
-      color: #fff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      font-family: 'Quicksand', sans-serif;
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-    header {
-      text-align: center;
-      margin-top: 30px;
-      margin-bottom: 20px;
-      width: 100%;
-    }
-    h1 {
-      font-family: 'Cinzel Decorative', cursive;
-      font-size: 3rem;
-      margin: 0 0 10px 0;
-      color: #ffbaff;
-      text-shadow: 0 0 20px #ff00ff, 0 0 40px #ff00ff;
-    }
-    .instructions {
-      font-family: 'Cinzel Decorative', cursive;
-      font-size: 1.3rem;
-      color: #fff;
-      max-width: 700px;
-      margin: 0 auto;
-      text-align: center;
-      line-height: 1.6;
-      /* Super Magical Shimmering Box */
-      background: rgba(42, 8, 69, 0.6);
-      backdrop-filter: blur(15px);
-      padding: 40px 60px;
-      border-radius: 60px 10px 60px 10px; /* Asymmetric "organic" magic shape */
-      border: 3px solid rgba(255, 186, 255, 0.4);
-      box-shadow: 0 0 50px rgba(255, 0, 255, 0.5), inset 0 0 30px rgba(0, 255, 255, 0.3);
-      position: relative;
-      animation: boxPulsate 4s ease-in-out infinite;
-    }
-    @keyframes boxPulsate {
-      0%, 100% { border-color: rgba(255, 186, 255, 0.4); box-shadow: 0 0 50px rgba(255, 0, 255, 0.5); }
-      50% { border-color: rgba(0, 255, 255, 0.6); box-shadow: 0 0 70px rgba(0, 255, 255, 0.4); }
-    }
-    #instr-0 {
-      font-size: 2.8rem;
-      color: #ffbaff;
-      text-shadow: 0 0 20px #ff00ff, 0 0 40px #ffbaff;
-      margin-bottom: 25px;
-      display: block;
-    }
-    .instructions p {
-      margin: 15px 0;
-    }
-    .instruction-step {
-      opacity: 0;
-      filter: blur(10px);
-      transform: scale(1.2);
-    }
-    .fly-in {
-      animation: fairyExplosion 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-    }
-    @keyframes fairyExplosion {
-      0% {
-        opacity: 0;
-        transform: scale(0) rotate(20deg);
-        filter: blur(30px) brightness(5) contrast(2);
-        color: #fff;
-        letter-spacing: 20px;
-        text-shadow: 0 0 20px #ff00ff, 0 0 40px #00ffff, 0 0 80px #fff;
-      }
-      50% {
-        opacity: 1;
-        transform: scale(1.5) rotate(-5deg);
-        filter: blur(10px) brightness(2);
-        letter-spacing: 5px;
-      }
-      100% {
-        opacity: 1;
-        transform: scale(1) rotate(0deg);
-        filter: blur(0) brightness(1);
-        text-shadow: 0 0 10px rgba(255, 186, 255, 0.8);
-        letter-spacing: normal;
-      }
-    }
-    #mirrors-gallery {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 30px;
-      justify-content: center;
-      width: 95%;
-      max-width: 1600px;
-      margin-bottom: 40px;
-    }
-    .mirror-frame {
-      position: relative;
-      padding: 10px;
-      background: linear-gradient(45deg, #ff00ff, #00ffff, #ff00ff);
-      background-size: 400% 400%;
-      animation: gradientBG 5s ease infinite;
-      border-radius: 20px;
-      box-shadow: 0 0 50px rgba(255, 0, 255, 0.5);
-      display: inline-block;
-    }
-    @keyframes gradientBG {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-    canvas {
-      display: block;
-      border-radius: 10px;
-      background-color: #000;
-      touch-action: pan-y !important; /* Forces mobile browser to allow scrolling when dragging on the canvas */
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Magic Fairy Dollhouse</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Quicksand:wght@400;700&family=Caveat:wght@600&display=swap" rel="stylesheet">
+    <!-- p5.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.js"></script>
+    <style>
+        :root {
+            --primary: #ff00ff;
+            --secondary: #00ffff;
+            --bg: #140028;
+            --glass: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: var(--bg);
+            color: white;
+            font-family: 'Quicksand', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        header {
+            text-align: center;
+            padding: 2rem;
+            width: 100%;
+            background: linear-gradient(180deg, rgba(255,0,255,0.1) 0%, transparent 100%);
+        }
+
+        h1 {
+            font-family: 'Cinzel Decorative', cursive;
+            font-size: 3rem;
+            margin: 0;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 10px rgba(255,0,255,0.5));
+        }
+
+        #app-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
+            width: 90%;
+            max-width: 1200px;
+            padding-bottom: 4rem;
+        }
+
+        /* Login Overlay */
+        #auth-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(20, 0, 40, 0.9);
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 0.5s ease;
+        }
+
+        .auth-box {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 3rem;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 0 50px rgba(255, 0, 255, 0.2);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .auth-box h2 {
+            font-family: 'Cinzel Decorative', cursive;
+            margin-bottom: 2rem;
+            color: var(--secondary);
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 0.5rem 0;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.1);
+            color: white;
+            box-sizing: border-box;
+        }
+
+        button {
+            padding: 12px 24px;
+            border-radius: 30px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            margin: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            color: var(--bg);
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.5);
+        }
+
+        /* Main Game Layout */
+        #game-area {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 2rem;
+            width: 100%;
+        }
+
+        #canvas-container {
+            position: relative;
+            background: rgba(0,0,0,0.3);
+            border-radius: 20px;
+            border: 2px solid var(--primary);
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1.5rem;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .item-picker {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+        }
+
+        .item-btn {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            padding: 0.8rem;
+            font-size: 1.5rem;
+            border-radius: 10px;
+            border: 1px solid transparent;
+        }
+
+        .item-btn:hover {
+            border-color: var(--secondary);
+            background: rgba(0, 255, 255, 0.1);
+        }
+
+        .item-btn.active {
+            background: var(--secondary);
+            color: var(--bg);
+        }
+
+        #scene-gallery {
+            width: 100%;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .scene-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1rem;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .scene-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary);
+        }
+
+        .scene-card h3 {
+            margin: 0 0 0.5rem 0;
+            color: var(--secondary);
+        }
+
+        .scene-card p {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin: 0;
+        }
+
+        #user-info {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
 </head>
 <body>
-  <!-- Login Authentication Gate Overlay -->
-  <div id="login-overlay">
-    <div class="login-box">
-      <h2>Enter the Kingdom</h2>
-      <p style="color: #4a2e15; font-family: 'Caveat', cursive; font-size: 1.5rem; margin-bottom: 25px;">Please verify your identity to access the Mirror.</p>
-      
-      <input type="email" id="auth-email" class="login-input" placeholder="Magical Email Address">
-      <input type="password" id="auth-password" class="login-input" placeholder="Secret Password">
-      
-      <button class="login-btn" onclick="loginWithEmail()">Enter with Magic Words</button>
-      
-      <p style="color: #4a2e15; margin: 20px 0; font-weight: bold;">— OR —</p>
-      
-      <button class="login-btn" style="background: white; border: 2px solid #ddd;" onclick="loginWithGoogle()">Sign in with Google</button>
-    </div>
-  </div>
 
-  <header>
-    <h1>Fairytopia Kingdom</h1>
-    <h2 style="font-family: 'Cinzel Decorative', cursive; font-size: 1.5rem; color: #00ffff; text-shadow: 0 0 10px #00ffff; margin-top: -10px; margin-bottom: 20px;">Let the battles begin</h2>
-    <div class="instructions">
-      <p id="instr-1" class="instruction-step fly-in">Create your fairy name to enter the kingdom.</p>
-      <p id="instr-2" class="instruction-step" style="display: none;">Type your magical item below and turn it into your wand.</p>
-      
-      <!-- ROUND 1 -->
-      <p id="instr-3" class="instruction-step" style="display: none;"><b>ROUND 1: THE GATHERING</b><br>Collect glowing Spirit Orbs with your wand to store Spell Points!</p>
-      
-      <p id="instr-4" class="instruction-step" style="display: none;"><b>ROUND 2: THE SPELL DUEL</b><br>Fire beats Earth, Earth beats Water, and Water beats Fire. Basic spells cost 5 Spell Points. Use the Mega Spell for massive damage, but it will cost your own Health Points!</p>
-      
-      <!-- ROUND 3 -->
-      <p id="instr-5" class="instruction-step" style="display: none;"><b>ROUND 3: THE REVELATION</b><br>Form a <b>tight fist</b> to witness the final battle and see who emerges as the High Fairy!</p>
+    <div id="auth-overlay">
+        <div class="auth-box">
+            <h2>Fairy Login</h2>
+            <p>Enter our magical realm to save your creations.</p>
+            <input type="email" id="email" placeholder="Magical Email">
+            <input type="password" id="password" placeholder="Secret Password">
+            <div style="margin-top: 1rem;">
+                <button class="btn-primary" id="login-btn">Login / Sign Up</button>
+            </div>
+            <p style="font-size: 0.8rem; opacity: 0.6; margin-top: 1rem;">If you don't have an account, it will be created automatically.</p>
+        </div>
     </div>
-  </header>
-  
-  <!-- Anchor the controls explicitly above the canvas so it never requires scrolling -->
-  <div id="controls-container" style="display: flex; flex-direction: column; align-items: center; width: 100%; margin-bottom: 20px; position: relative; z-index: 100;"></div>
-  
-  <!-- We use opacity instead of display:none to prevent p5 layout collapse on load -->
-  <div id="mirrors-gallery" style="opacity: 0; pointer-events: none; height: 0; overflow: hidden; transition: opacity 1s ease;">
-    <!-- Our Local Display Engine -->
-    <div id="local-mirror-container" class="mirror-frame">
-      <div id="p5-container"></div>
-    </div>
-    <!-- WebRTC will dynamically inject new remote video streamers identically beside this one! -->
-  </div>
-  
-  <script src="sketch.js"></script>
+
+    <header>
+        <h1>Magic Fairy Dollhouse</h1>
+        <p>Arrange your magical scene and share it with other fairies!</p>
+        <div id="user-info" class="hidden">
+            <span id="user-display"></span>
+            <button onclick="window.logout()" style="background: rgba(255,255,255,0.1); color: white; padding: 5px 15px;">Logout</button>
+        </div>
+    </header>
+
+    <main id="app-container">
+        <div id="game-area">
+            <div id="canvas-container">
+                <!-- p5 canvas will go here -->
+            </div>
+
+            <div class="sidebar">
+                <div class="panel">
+                    <h3>Add Items</h3>
+                    <div class="item-picker" id="item-picker">
+                        <button class="item-btn" data-type="fairy">🧚</button>
+                        <button class="item-btn" data-type="mushroom">🍄</button>
+                        <button class="item-btn" data-type="crystal">💎</button>
+                        <button class="item-btn" data-type="flower">🌸</button>
+                        <button class="item-btn" data-type="star">⭐</button>
+                        <button class="item-btn" data-type="wand">🪄</button>
+                    </div>
+                    <p style="font-size: 0.8rem; margin-top: 10px;">Click an icon, then click the canvas to place. Drag to move. Press 'Delete' to remove.</p>
+                </div>
+
+                <div class="panel">
+                    <h3>Scene Mood</h3>
+                    <textarea id="scene-description" style="width:100%; height:80px; background:rgba(0,0,0,0.3); color:white; border-radius:10px; border:1px solid rgba(255,255,255,0.2); padding:10px; font-family:inherit;" placeholder="Describe the magic here..."></textarea>
+                    <button class="btn-primary" id="save-btn" style="width:100%; margin-top: 1rem;">Save Scene to Firebase</button>
+                    <button id="clear-btn" style="width:100%; background:rgba(255,0,0,0.2); color:white; margin-top:0.5rem;">Clear Canvas</button>
+                </div>
+            </div>
+        </div>
+
+        <div style="width: 100%;">
+            <h2 style="font-family: 'Cinzel Decorative'; border-bottom: 1px solid var(--glass); padding-bottom: 0.5rem;">The Fairy Gallery</h2>
+            <div id="scene-gallery">
+                <!-- Other users' scenes will load here -->
+                <p>Loading magical scenes...</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Firebase SDK (Modular) -->
+    <script type="module" src="app.js"></script>
 </body>
 </html>
