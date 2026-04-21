@@ -64,6 +64,8 @@ let draggingItem = null;
 let capture;
 let backgroundImgs = {};
 let bodypix;
+let cameraStarted = false;
+let cameraReady = false;
 
 const sketch = (p) => {
     p.preload = () => {
@@ -78,10 +80,6 @@ const sketch = (p) => {
         const w = container ? container.offsetWidth : 800;
         const canvas = p.createCanvas(w > 0 ? w : 800, 550);
         canvas.parent('canvas-container');
-        capture = p.createCapture(p.VIDEO);
-        capture.size(320, 240);
-        capture.hide();
-        bodypix = ml5.bodyPix(capture, { multiplier: 0.75, outputStride: 16, segmentationThreshold: 0.5 }, () => console.log('BodyPix ready'));
         applyTheme(currentRealm);
         initUIListeners();
     };
@@ -135,12 +133,30 @@ const sketch = (p) => {
         p.loadImage(url, (img) => { makeTransparent(img); items.push({ x: p.width / 2, y: p.height / 2, type: type, img: img, dataUrl: img.canvas?.toDataURL() || url, accessory: acc }); });
     };
 
+    window.startCamera = () => {
+        if (cameraStarted) { window.takeSelfie(); return; }
+        const btn = getEl('selfie-btn');
+        if (btn) { btn.innerText = "TURNING ON CAMERA..."; btn.style.opacity = "0.5"; }
+        cameraStarted = true;
+        capture = p.createCapture(p.VIDEO, () => {
+            capture.size(320, 240); capture.hide();
+            if (btn) btn.innerText = "LOADING MAGIC...";
+            bodypix = ml5.bodyPix(capture, { multiplier: 0.75, outputStride: 16, segmentationThreshold: 0.5 }, () => {
+                console.log('BodyPix ready');
+                cameraReady = true;
+                if (btn) { btn.innerText = "📸 CAPTURE FACE STICKER"; btn.style.opacity = "1"; }
+                window.takeSelfie();
+            });
+        });
+    };
+
     window.takeSelfie = () => {
-        if (!bodypix) return alert("Mirror warming up...");
-        const btn = getEl('selfie-btn'); if (btn) { btn.innerText = "CAPTURING SPIRIT..."; btn.style.opacity = "0.5"; }
+        if (!cameraReady || !bodypix || !capture) { window.startCamera(); return; }
+        const btn = getEl('selfie-btn');
+        if (btn) { btn.innerText = "CAPTURING..."; btn.style.opacity = "0.5"; }
         bodypix.segment(capture, (error, result) => {
-            if (btn) { btn.innerText = "📸 CAPTURE SPIRIT"; btn.style.opacity = "1"; }
-            if (error) return;
+            if (btn) { btn.innerText = "📸 CAPTURE FACE STICKER"; btn.style.opacity = "1"; }
+            if (error) { console.error(error); return; }
             let buff = p.createGraphics(320, 240); buff.image(capture, 0, 0); buff.loadPixels();
             for (let i = 0; i < buff.pixels.length; i += 4) { if (result.mask.data[i/4] === 0) buff.pixels[i+3] = 0; }
             buff.updatePixels();
@@ -148,7 +164,7 @@ const sketch = (p) => {
             const accs = ['wings', 'crown', 'ears', 'necklace', null]; const randomAcc = accs[Math.floor(Math.random() * accs.length)];
             const d = finalBuff.canvas.toDataURL();
             items.push({ x: p.width / 2, y: p.height / 2, type: 'selfie', img: finalBuff.get(), dataUrl: d, accessory: randomAcc });
-            if (currentUser) addDoc(collection(db, "spirit_stickers"), { creator: currentUser.email.split('@')[0], dataUrl: d, createdAt: serverTimestamp(), accessory: randomAcc });
+            if (currentUser) addDoc(collection(db, "spirit_stickers"), { creator: currentUser.email.split('@')[0], dataUrl: d, createdAt: serverTimestamp(), accessory: randomAcc }).catch(e => console.warn("Sticker save:", e));
         });
     };
 
@@ -163,7 +179,7 @@ const myP5 = new p5(sketch);
 
 // --- UI LISTENERS ---
 function initUIListeners() {
-    document.body.addEventListener('click', (e) => { if (e.target.id === 'selfie-btn' || e.target.closest('#selfie-btn')) window.takeSelfie(); });
+    document.body.addEventListener('click', (e) => { if (e.target.id === 'selfie-btn' || e.target.closest('#selfie-btn')) window.startCamera(); });
 
     const aiBtn = getEl('ai-btn');
     if (aiBtn) aiBtn.onclick = async () => {
