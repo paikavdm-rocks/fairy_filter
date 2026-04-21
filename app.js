@@ -1,291 +1,234 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { 
-    getAuth, 
-    signInWithEmailAndPassword, 
-    createUserWithEmailAndPassword, 
-    onAuthStateChanged, 
-    signOut 
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { 
-    getFirestore, 
-    collection, 
-    addDoc, 
-    onSnapshot, 
-    query, 
-    orderBy, 
-    serverTimestamp 
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-// --- FIREBASE SETUP ---
+// ----- FIREBASE CONFIGURATION -----
+// (Same credentials as your previous project)
 const firebaseConfig = {
   apiKey: "AIzaSyBcnbOXvlC4Z30Y34BMShr8NaGozymIVLE",
   authDomain: "fairytopia.firebaseapp.com",
+  databaseURL: "https://fairytopia-default-rtdb.firebaseio.com",
   projectId: "fairytopia",
   storageBucket: "fairytopia.firebasestorage.app",
   messagingSenderId: "531666119490",
   appId: "1:531666119490:web:329cedbdaf92247cdef6db"
 };
 
+// Initialize Firebase
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getDatabase, ref, set, push, onValue, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
+const db = getDatabase(app);
 
+// --- GLOBAL STATE ---
 let currentUser = null;
+let placedItems = [];
+let selectedType = 'fairy';
+let draggingItem = null;
+let dragOffset = { x: 0, y: 0 };
+let remoteScenes = [];
 
-// --- DOM ELEMENTS ---
+const EMOJI_MAP = {
+    'fairy': '🧚',
+    'mushroom': '🍄',
+    'crystal': '💎',
+    'flower': '🌸',
+    'star': '⭐',
+    'wand': '🪄'
+};
+
+// --- AUTH LOGIC ---
 const authOverlay = document.getElementById('auth-overlay');
 const loginBtn = document.getElementById('login-btn');
 const emailInput = document.getElementById('email');
-const passwordInput = document.getElementById('password');
-const userInfo = document.getElementById('user-info');
-const userDisplay = document.getElementById('user-display');
-const saveBtn = document.getElementById('save-btn');
-const clearBtn = document.getElementById('clear-btn');
-const descriptionInput = document.getElementById('scene-description');
-const sceneGallery = document.getElementById('scene-gallery');
-const itemPicker = document.getElementById('item-picker');
+const passInput = document.getElementById('password');
 
-// --- AUTH LOGIC ---
-loginBtn.addEventListener('click', async () => {
+loginBtn.onclick = () => {
     const email = emailInput.value;
-    const password = passwordInput.value;
-    if (!email || !password) return alert("Please enter magical credentials!");
+    const pass = passInput.value;
+    if (!email || !pass) return alert("Enter your magic words!");
 
-    try {
-        await signInWithEmailAndPassword(auth, email, password);
-    } catch (error) {
-        if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-            try {
-                await createUserWithEmailAndPassword(auth, email, password);
-                alert("New Fairy Account Created! ✨");
-            } catch (err) {
-                alert(err.message);
-            }
+    signInWithEmailAndPassword(auth, email, pass).catch(err => {
+        if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+            createUserWithEmailAndPassword(auth, email, pass).catch(e => alert(e.message));
         } else {
-            alert(error.message);
+            alert(err.message);
         }
-    }
-});
+    });
+};
 
 onAuthStateChanged(auth, (user) => {
     if (user) {
         currentUser = user;
-        authOverlay.classList.add('hidden');
-        userInfo.classList.remove('hidden');
-        userDisplay.innerText = `Welcome, ${user.email.split('@')[0]}!`;
+        authOverlay.style.opacity = '0';
+        setTimeout(() => authOverlay.classList.add('hidden'), 500);
+        document.getElementById('user-info').classList.remove('hidden');
+        document.getElementById('user-display').innerText = `Fairy: ${user.email.split('@')[0]}`;
         loadGallery();
     } else {
         currentUser = null;
         authOverlay.classList.remove('hidden');
-        userInfo.classList.add('hidden');
+        authOverlay.style.opacity = '1';
+        document.getElementById('user-info').classList.add('hidden');
     }
 });
 
 window.logout = () => signOut(auth);
 
-// --- P5.JS DOLLHOUSE LOGIC ---
-let items = [];
-let selectedType = 'fairy';
-let draggingItem = null;
+// --- p5.js ENGINE ---
+window.setup = () => {
+    const container = document.getElementById('canvas-container');
+    const canvas = createCanvas(container.offsetWidth, 500);
+    canvas.parent('canvas-container');
+    
+    // UI Selectors
+    document.querySelectorAll('.item-btn').forEach(btn => {
+        btn.onclick = () => {
+            document.querySelectorAll('.item-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            selectedType = btn.dataset.type;
+        };
+    });
 
-const sketch = (p) => {
-    p.setup = () => {
-        const container = document.getElementById('canvas-container');
-        const canvas = p.createCanvas(container.offsetWidth, 500);
-        canvas.parent(container);
-        p.textAlign(p.CENTER, p.CENTER);
-        p.textSize(30);
-    };
+    document.getElementById('save-btn').onclick = saveScene;
+    document.getElementById('clear-btn').onclick = () => { placedItems = []; };
 
-    p.draw = () => {
-        // Magical background
-        p.background(20, 0, 40);
-        
-        // Draw some sparkles in bg
-        p.noStroke();
-        for(let i=0; i<10; i++) {
-            p.fill(255, 255, 255, 50);
-            p.ellipse(p.noise(i, p.frameCount*0.01)*p.width, p.noise(i+10, p.frameCount*0.01)*p.height, 2, 2);
+    // Set initial active state
+    document.querySelector('[data-type="fairy"]').classList.add('active');
+};
+
+window.draw = () => {
+    background(20, 0, 40); // Dark mystical purple
+    
+    // Draw subtle ground
+    fill(40, 20, 60);
+    noStroke();
+    rect(0, height - 100, width, 100);
+    
+    // Draw "Sparkles" in background
+    if (frameCount % 20 === 0 && placedItems.length > 0) {
+        push();
+        noStroke();
+        fill(255, 255, 200, 150);
+        ellipse(random(width), random(height), 2);
+        pop();
+    }
+
+    // Render Items
+    textAlign(CENTER, CENTER);
+    textSize(50);
+    placedItems.forEach((item, index) => {
+        // Subtle hover glow
+        if (isMouseOver(item)) {
+            push();
+            drawingContext.shadowBlur = 20;
+            drawingContext.shadowColor = '#00ffff';
+            text(item.emoji, item.x, item.y);
+            pop();
+        } else {
+            text(item.emoji, item.x, item.y);
         }
+    });
+};
 
-        // Draw items
-        items.forEach(item => {
-            p.push();
-            p.translate(item.x, item.y);
-            // Handle hover effect
-            if (p.dist(p.mouseX, p.mouseY, item.x, item.y) < 25) {
-                p.scale(1.2 + p.sin(p.frameCount * 0.1) * 0.1);
-                p.fill(255, 255, 255, 30);
-                p.ellipse(0, 0, 50, 50);
-            }
-            p.text(getEmoji(item.type), 0, 0);
-            p.pop();
+window.mousePressed = () => {
+    // Check if clicking an existing item to drag
+    for (let i = placedItems.length - 1; i >= 0; i--) {
+        if (isMouseOver(placedItems[i])) {
+            draggingItem = placedItems[i];
+            dragOffset.x = draggingItem.x - mouseX;
+            dragOffset.y = draggingItem.y - mouseY;
+            return;
+        }
+    }
+
+    // Otherwise place a new item
+    if (mouseX > 0 && mouseX < width && mouseY > 0 && mouseY < height) {
+        placedItems.push({
+            x: mouseX,
+            y: mouseY,
+            type: selectedType,
+            emoji: EMOJI_MAP[selectedType]
         });
+    }
+};
 
-        // Instructions if empty
-        if (items.length === 0) {
-            p.fill(255, 100);
-            p.textSize(18);
-            p.text("Click to place items in your dollhouse 🧚", p.width/2, p.height/2);
-        }
-    };
+window.mouseDragged = () => {
+    if (draggingItem) {
+        draggingItem.x = mouseX + dragOffset.x;
+        draggingItem.y = mouseY + dragOffset.y;
+    }
+};
 
-    p.mousePressed = () => {
-        // Check if clicking an existing item to drag
-        let found = false;
-        for (let i = items.length - 1; i >= 0; i--) {
-            if (p.dist(p.mouseX, p.mouseY, items[i].x, items[i].y) < 30) {
-                draggingItem = items[i];
-                found = true;
+window.mouseReleased = () => {
+    draggingItem = null;
+};
+
+window.keyPressed = () => {
+    if (keyCode === DELETE || keyCode === BACKSPACE) {
+        // Remove item under mouse
+        for (let i = placedItems.length - 1; i >= 0; i--) {
+            if (isMouseOver(placedItems[i])) {
+                placedItems.splice(i, 1);
                 break;
             }
         }
-
-        // If not dragging, place new item
-        if (!found && p.mouseX > 0 && p.mouseX < p.width && p.mouseY > 0 && p.mouseY < p.height) {
-            items.push({
-                x: p.mouseX,
-                y: p.mouseY,
-                type: selectedType
-            });
-        }
-    };
-
-    p.mouseDragged = () => {
-        if (draggingItem) {
-            draggingItem.x = p.mouseX;
-            draggingItem.y = p.mouseY;
-        }
-    };
-
-    p.mouseReleased = () => {
-        draggingItem = null;
-    };
-
-    p.keyPressed = () => {
-        if (p.keyCode === p.DELETE || p.keyCode === p.BACKSPACE) {
-            // Remove item closest to mouse
-            let closest = -1;
-            let minDist = 30;
-            items.forEach((item, index) => {
-                let d = p.dist(p.mouseX, p.mouseY, item.x, item.y);
-                if (d < minDist) {
-                    minDist = d;
-                    closest = index;
-                }
-            });
-            if (closest !== -1) items.splice(closest, 1);
-        }
-    };
-
-    function getEmoji(type) {
-        const emojis = {
-            'fairy': '🧚',
-            'mushroom': '🍄',
-            'crystal': '💎',
-            'flower': '🌸',
-            'star': '⭐',
-            'wand': '🪄'
-        };
-        return emojis[type] || '✨';
     }
-    
-    p.windowResized = () => {
-        const container = document.getElementById('canvas-container');
-        p.resizeCanvas(container.offsetWidth, 500);
-    };
 };
 
-new p5(sketch);
+function isMouseOver(item) {
+    return dist(mouseX, mouseY, item.x, item.y) < 30;
+}
 
-// --- UI INTERACTIONS ---
-itemPicker.addEventListener('click', (e) => {
-    if (e.target.dataset.type) {
-        selectedType = e.target.dataset.type;
-        // Update UI active state
-        document.querySelectorAll('.item-btn').forEach(btn => btn.classList.remove('active'));
-        e.target.classList.add('active');
-    }
-});
-
-clearBtn.addEventListener('click', () => {
-    if (confirm("Clear your magical arrangement?")) {
-        items = [];
-    }
-});
-
-// --- FIRESTORE PERSISTENCE ---
-
-saveBtn.addEventListener('click', async () => {
-    if (!currentUser) return alert("Log in to save your magic!");
-    if (items.length === 0) return alert("Your dollhouse is empty! Place some items first.");
-
-    const description = descriptionInput.value || "A beautiful fairy scene.";
+// --- CLOUD LOGIC ---
+async function saveScene() {
+    if (!currentUser) return alert("Must be logged in to save magic!");
+    const desc = document.getElementById('scene-description').value;
     
-    try {
-        saveBtn.disabled = true;
-        saveBtn.innerText = "Saving Magic...";
-        
-        await addDoc(collection(db, "scenes"), {
-            uid: currentUser.uid,
-            creator: currentUser.email.split('@')[0],
-            description: description,
-            arrangement: items,
-            createdAt: serverTimestamp()
-        });
+    const sceneData = {
+        user: currentUser.email.split('@')[0],
+        description: desc || "A mystical scene",
+        items: placedItems,
+        timestamp: Date.now()
+    };
 
-        alert("Scene saved to the Fairy Cloud! 🌟");
-        descriptionInput.value = "";
+    try {
+        const scenesRef = ref(db, 'dollhouse_scenes');
+        const newSceneRef = push(scenesRef);
+        await set(newSceneRef, sceneData);
+        alert("✨ Scene saved to the Cloud Gallery! ✨");
     } catch (e) {
-        console.error("Error saving: ", e);
-        alert("The magic failed: " + e.message);
-    } finally {
-        saveBtn.disabled = false;
-        saveBtn.innerText = "Save Scene to Firebase";
+        console.error(e);
+        alert("The magic failed to reach the database!");
     }
-});
+}
 
 function loadGallery() {
-    const q = query(collection(db, "scenes"), orderBy("createdAt", "desc"));
+    const gallery = document.getElementById('scene-gallery');
+    const scenesRef = ref(db, 'dollhouse_scenes');
     
-    onSnapshot(q, (snapshot) => {
-        sceneGallery.innerHTML = "";
-        if (snapshot.empty) {
-            sceneGallery.innerHTML = "<p>No magical scenes yet. Be the first!</p>";
+    onValue(scenesRef, (snapshot) => {
+        const data = snapshot.val();
+        gallery.innerHTML = "";
+        if (!data) {
+            gallery.innerHTML = "<p>No scenes yet. Be the first!</p>";
             return;
         }
 
-        snapshot.forEach((doc) => {
-            const data = doc.data();
+        Object.values(data).reverse().forEach(scene => {
             const card = document.createElement('div');
-            card.className = 'scene-card';
+            card.className = "scene-card";
             card.innerHTML = `
-                <h3>${data.creator}'s World</h3>
-                <p>${data.description}</p>
-                <div style="font-size: 1.2rem; margin-top: 10px;">
-                    ${data.arrangement.map(i => getEmoji(i.type)).join(' ')}
+                <h3>${scene.user}'s Realm</h3>
+                <p>${scene.description}</p>
+                <div style="font-size: 1.5rem; margin-top: 10px;">
+                    ${scene.items.slice(0, 5).map(i => i.emoji).join(' ')} ...
                 </div>
             `;
-            card.addEventListener('click', () => {
-                if (confirm(`Load ${data.creator}'s scene? Current work will be lost.`)) {
-                    items = JSON.parse(JSON.stringify(data.arrangement));
-                    descriptionInput.value = data.description;
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                }
-            });
-            sceneGallery.appendChild(card);
+            card.onclick = () => {
+                placedItems = scene.items;
+                document.getElementById('scene-description').value = scene.description;
+            };
+            gallery.appendChild(card);
         });
     });
-}
-
-function getEmoji(type) {
-    const emojis = {
-        'fairy': '🧚',
-        'mushroom': '🍄',
-        'crystal': '💎',
-        'flower': '🌸',
-        'star': '⭐',
-        'wand': '🪄'
-    };
-    return emojis[type] || '✨';
 }
