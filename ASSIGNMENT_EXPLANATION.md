@@ -1,32 +1,24 @@
-# Fairy Dollhouse Assignment
+# The Emerald Kingdom - Refined Assignment
 
-This project has been "stripped down" to focus precisely on the core concepts of this week's assignment: **Client-side vs Server-side (Firebase as a Service)**.
+This project has been upgraded to the **Emerald Kingdom** theme, introducing advanced client-side processing while maintaining the core "Firebase as a Service" assignment goals.
 
-## How it fits the assignment:
+## New Feature Highlights:
 
-1.  **Client vs Server**: 
-    - The **Client** (your browser) runs the p5.js canvas and handles user interactions (dragging fairies, clicking mushrooms).
-    - The **Server** (Firebase Firestore) acts as your "GUI for the backend". You don't write any server-side code; instead, you use the Firebase console to see your data and "pull the strings" with client-side JavaScript.
-    
-2.  **Persistence (Firestore)**:
-    - When you click "Save Scene", your arrangement (the X/Y positions of every emoji) is packaged as a JSON object and sent to the **Firestore** database.
-    - Refresh the page, and the data is still there in the cloud!
-    
-3.  **Scene Description**:
-    - There is a text box specifically to "record and recall a description of the scene," allowing you to narrate your digital dollhouse.
-    
-4.  **Firebase Authentication**:
-    - Users must log in (or sign up automatically by entering an email/pass) to save scenes.
-    - Your user status is tracked by the "server" (Auth service) without you building a login system from scratch.
-    
-5.  **Social Sharing**:
-    - The **Gallery** section at the bottom uses a real-time listener (`onSnapshot`). This means whenever *anyone* in the class saves a scene, it pops up in the gallery for everyone else immediately.
-    - You can click any scene in the gallery to "recall" it into your own canvas!
+1.  **Generative Client-Side Environment**:
+    - The background is no longer a static color. It now uses a custom p5.js loop to generate a **Mossy Forest** with shifting misty shapes and interactive fireflies.
+    - This demonstrates advanced "Client-Side" logic: the server doesn't know about the fireflies; they are generated in real-time by the user's browser.
 
-## Technology Used:
-- **p5.js**: Interactive visual dollhouse.
-- **Firebase v10 (Modular)**: State-of-the-art serverless SDK.
-- **Vanilla CSS**: Premium "Magic" aesthetics (Glassmorphism, gradients, animations).
+2.  **Magic Selfie Stickers (Data Persistence)**:
+    - You can now click "Capture Magic Selfie" to take a webcam snapshot.
+    - **Concept**: This uses the `capture.toDataURL()` method to convert pixels into a string.
+    - **Persistence**: This string is sent to **Firestore**. When you or anyone else loads the scene, the "Server" (Firebase) sends that string back, and p5.js recreates your sticker in the "Emerald Chronicles" (Gallery).
 
-## To run:
-Simply open `index.html` in a Live Server or any browser!
+3.  **Refined Aesthetics**:
+    - **Typography**: Switched to 'Playfair Display' (for a classical, ancient lore feel) and 'Inter' (for modern UI readability).
+    - **Color Palette**: Deep Emerald (#1A2A22), Neon Green (#50FA7B), and Sunlight Gold (#F1FA8C).
+
+## How to use:
+1.  **Login**: Enter the realm with your magical credentials.
+2.  **Create**: Use the Magic Elements (🧚, 🍄, 🪄) or "Capture Magic Selfie" to populate your forest.
+3.  **Arrange**: Drag stickers around. Press **Delete** while hovering to remove an item.
+4.  **Chronicle**: Write the "Lore" of your scene and click "COMMIT TO ETERNITY" to save it to Firebase for the whole class to see.

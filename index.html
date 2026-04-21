@@ -5,23 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Magic Fairy Dollhouse</title>
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Quicksand:wght@400;700&family=Caveat:wght@600&display=swap" rel="stylesheet">
-    <!-- p5.js -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;700&family=Caveat:wght@600&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.js"></script>
     <style>
         :root {
-            --primary: #ff00ff;
-            --secondary: #00ffff;
-            --bg: #140028;
-            --glass: rgba(255, 255, 255, 0.1);
+            --primary: #50fa7b; /* Neon Green */
+            --secondary: #f1fa8c; /* Sunlight Gold */
+            --background: #1a2a22; /* Dark Forest Green */
+            --accent: #8be9fd; /* Sky Blue */
+            --glass: rgba(255, 255, 255, 0.05);
+            --border: rgba(80, 250, 123, 0.2);
         }
 
         body {
             margin: 0;
             padding: 0;
-            background: var(--bg);
-            color: white;
-            font-family: 'Quicksand', sans-serif;
+            background: radial-gradient(circle at center, #2d4a3e 0%, #1a2a22 100%);
+            color: #f8f8f2;
+            font-family: 'Inter', sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -31,19 +32,20 @@
 
         header {
             text-align: center;
-            padding: 2rem;
+            padding: 4rem 2rem;
             width: 100%;
-            background: linear-gradient(180deg, rgba(255,0,255,0.1) 0%, transparent 100%);
+            background: url('https://www.transparenttextures.com/patterns/leaf.png'), linear-gradient(180deg, rgba(80,250,123,0.1) 0%, transparent 100%);
         }
 
         h1 {
-            font-family: 'Cinzel Decorative', cursive;
-            font-size: 3rem;
+            font-family: 'Playfair Display', serif;
+            font-size: 4rem;
+            font-weight: 900;
             margin: 0;
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 0 10px rgba(255,0,255,0.5));
+            color: var(--secondary);
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            filter: drop-shadow(0 0 15px rgba(80,250,123,0.4));
         }
 
         #app-container {
@@ -235,23 +237,23 @@
     </div>
 
     <header>
-        <h1>Magic Fairy Dollhouse</h1>
-        <p>Arrange your magical scene and share it with other fairies!</p>
+        <h1>The Emerald Kingdom</h1>
+        <p style="font-family: 'Playfair Display'; font-style: italic; font-size: 1.2rem; color: var(--primary); opacity: 0.8;">"Where every fairy leaves a footprint in the stars..."</p>
         <div id="user-info" class="hidden">
             <span id="user-display"></span>
-            <button onclick="window.logout()" style="background: rgba(255,255,255,0.1); color: white; padding: 5px 15px;">Logout</button>
+            <button onclick="window.logout()" style="background: var(--glass); color: white; border: 1px solid var(--primary); padding: 5px 15px; border-radius: 20px;">Exit Realm</button>
         </div>
     </header>
 
     <main id="app-container">
         <div id="game-area">
-            <div id="canvas-container">
+            <div id="canvas-container" style="border: 4px solid var(--primary); box-shadow: 0 0 40px rgba(80,250,123,0.2);">
                 <!-- p5 canvas will go here -->
             </div>
 
             <div class="sidebar">
-                <div class="panel">
-                    <h3>Add Items</h3>
+                <div class="panel" style="background: rgba(0,0,0,0.4); border-color: var(--primary);">
+                    <h3 style="font-family: 'Playfair Display'; color: var(--secondary);">Magic Elements</h3>
                     <div class="item-picker" id="item-picker">
                         <button class="item-btn" data-type="fairy">🧚</button>
                         <button class="item-btn" data-type="mushroom">🍄</button>
@@ -260,20 +262,26 @@
                         <button class="item-btn" data-type="star">⭐</button>
                         <button class="item-btn" data-type="wand">🪄</button>
                     </div>
-                    <p style="font-size: 0.8rem; margin-top: 10px;">Click an icon, then click the canvas to place. Drag to move. Press 'Delete' to remove.</p>
+                    
+                    <div style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 20px;">
+                        <button id="selfie-btn" class="btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 1rem; background: var(--accent); color: #000;">
+                            📸 Capture Magic Selfie
+                        </button>
+                        <p style="font-size: 0.75rem; text-align: center; margin-top: 8px; opacity: 0.7;">Create a sticker of yourself!</p>
+                    </div>
                 </div>
 
-                <div class="panel">
-                    <h3>Scene Mood</h3>
-                    <textarea id="scene-description" style="width:100%; height:80px; background:rgba(0,0,0,0.3); color:white; border-radius:10px; border:1px solid rgba(255,255,255,0.2); padding:10px; font-family:inherit;" placeholder="Describe the magic here..."></textarea>
-                    <button class="btn-primary" id="save-btn" style="width:100%; margin-top: 1rem;">Save Scene to Firebase</button>
-                    <button id="clear-btn" style="width:100%; background:rgba(255,0,0,0.2); color:white; margin-top:0.5rem;">Clear Canvas</button>
+                <div class="panel" style="background: rgba(0,0,0,0.4); border-color: var(--primary);">
+                    <h3 style="font-family: 'Playfair Display'; color: var(--secondary);">Lore & Mood</h3>
+                    <textarea id="scene-description" style="width:100%; height:80px; background:rgba(0,0,0,0.3); color:white; border-radius:10px; border:1px solid var(--border); padding:10px; font-family:inherit;" placeholder="Describe the ancient magic here..."></textarea>
+                    <button class="btn-primary" id="save-btn" style="width:100%; margin-top: 1rem; letter-spacing: 1px;">COMMIT TO ETERNITY</button>
+                    <button id="clear-btn" style="width:100%; background:transparent; border: 1px solid rgba(255,0,0,0.3); color:#ff5555; margin-top:0.5rem; font-size: 0.8rem;">Vanish All Magic</button>
                 </div>
             </div>
         </div>
 
         <div style="width: 100%;">
-            <h2 style="font-family: 'Cinzel Decorative'; border-bottom: 1px solid var(--glass); padding-bottom: 0.5rem;">The Fairy Gallery</h2>
+            <h2 style="font-family: 'Playfair Display'; font-size: 2.5rem; color: var(--secondary); border-bottom: 2px solid var(--primary); padding-bottom: 1rem; margin-bottom: 2rem;">The Chronicled Realms</h2>
             <div id="scene-gallery">
                 <!-- Other users' scenes will load here -->
                 <p>Loading magical scenes...</p>
