@@ -278,15 +278,20 @@ aiBtn.onclick = async () => {
     
     try {
         const res = await fetch("https://itp-ima-replicate-proxy.web.app/api/create_n_get", {
-            method: "POST", headers: { "Content-Type": "application/json" },
+            method: "POST", 
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ 
-                prompt: `sticker of ${pr}, detailed magical fantasy art, isolated on pure white background, digital illustration`,
-                model: "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1d712de74a5ee2486673d4d4d557599c537" 
+                model: "google/nano-banana",
+                input: {
+                    prompt: `A standalone, glowing magical item: ${pr}. Detailed magical fantasy art, isolated on pure white background, digital illustration.`
+                }
             })
         });
         const d = await res.json();
-        // The ITS-IMA proxy returns { output: [url] } or { image: url }
-        const url = d.output ? d.output[0] : (d.image || d.items?.[0]?.image);
+        
+        // Handle result.output as a string or array
+        const url = Array.isArray(d.output) ? d.output[0] : d.output;
+        
         if (url) {
             window.addSticker(url, 'ai');
         } else {
