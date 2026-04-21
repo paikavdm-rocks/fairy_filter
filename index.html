@@ -225,20 +225,27 @@
 
     <div id="auth-overlay">
         <div class="auth-box">
-            <h2>Fairy Login</h2>
-            <p>Enter our magical realm to save your creations.</p>
+            <h2 id="auth-title">The Gemstone Realms</h2>
+            <p>Select your allegiance and enter your credentials.</p>
+            
+            <div id="realm-selector" style="display: flex; justify-content: center; gap: 10px; margin-bottom: 20px;">
+                <button class="realm-btn active" data-realm="emerald" style="background:#50fa7b; width:40px; height:40px; border-radius:50%; border:2px solid white; cursor:pointer;" title="Emerald"></button>
+                <button class="realm-btn" data-realm="ruby" style="background:#ff5555; width:40px; height:40px; border-radius:50%; border:2px solid transparent; cursor:pointer;" title="Ruby"></button>
+                <button class="realm-btn" data-realm="jade" style="background:#8be9fd; width:40px; height:40px; border-radius:50%; border:2px solid transparent; cursor:pointer;" title="Jade"></button>
+                <button class="realm-btn" data-realm="amethyst" style="background:#bd93f9; width:40px; height:40px; border-radius:50%; border:2px solid transparent; cursor:pointer;" title="Amethyst"></button>
+            </div>
+
             <input type="email" id="email" placeholder="Magical Email">
             <input type="password" id="password" placeholder="Secret Password">
             <div style="margin-top: 1rem;">
-                <button class="btn-primary" id="login-btn">Login / Sign Up</button>
+                <button class="btn-primary" id="login-btn">ENTER REALM</button>
             </div>
-            <p style="font-size: 0.8rem; opacity: 0.6; margin-top: 1rem;">If you don't have an account, it will be created automatically.</p>
         </div>
     </div>
 
     <header>
-        <h1>The Emerald Kingdom</h1>
-        <p style="font-family: 'Playfair Display'; font-style: italic; font-size: 1.2rem; color: var(--primary); opacity: 0.8;">"Where every fairy leaves a footprint in the stars..."</p>
+        <h1 id="main-title">The Emerald Kingdom</h1>
+        <p id="sub-title" style="font-family: 'Playfair Display'; font-style: italic; font-size: 1.2rem; color: var(--primary); opacity: 0.8;">"Where every fairy leaves a footprint in the stars..."</p>
         <div id="user-info" class="hidden">
             <span id="user-display"></span>
             <button onclick="window.logout()" style="background: var(--glass); color: white; border: 1px solid var(--primary); padding: 5px 15px; border-radius: 20px;">Exit Realm</button>
@@ -262,13 +269,28 @@
                         <button class="item-btn" data-type="star">⭐</button>
                         <button class="item-btn" data-type="wand">🪄</button>
                     </div>
+
+                    <!-- Shared Sticker Bank -->
+                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border);">
+                        <p style="font-size: 0.8rem; margin-bottom: 5px; color: var(--secondary);">Shared Spirit Stickers:</p>
+                        <div id="shared-stickers" style="display: flex; flex-wrap: wrap; gap: 5px; height: 60px; overflow-y: auto; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 10px;">
+                            <span style="font-size: 0.7rem; opacity: 0.5;">Collecting spirits...</span>
+                        </div>
+                    </div>
                     
                     <div style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 20px;">
                         <button id="selfie-btn" class="btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 1rem; background: var(--accent); color: #000;">
-                            📸 Capture Magic Selfie
+                            📸 Capture Spirit Selfie
                         </button>
-                        <p style="font-size: 0.75rem; text-align: center; margin-top: 8px; opacity: 0.7;">Create a sticker of yourself!</p>
                     </div>
+                </div>
+
+                <!-- NEW: AI CONJURING PANEL -->
+                <div class="panel" style="background: rgba(0,0,0,0.4); border-color: var(--accent);">
+                    <h3 style="font-family: 'Playfair Display'; color: var(--accent);">AI Conjuring</h3>
+                    <input type="text" id="ai-prompt" placeholder="A golden rabbit..." style="font-size: 0.8rem; background: rgba(0,0,0,0.3); border: 1px solid var(--accent);">
+                    <button id="ai-btn" class="btn-primary" style="width: 100%; font-size: 0.9rem; background: var(--accent); color: #000;">✨ CONJURE ITEM</button>
+                    <p style="font-size: 0.7rem; opacity: 0.6; margin-top: 5px;">Uses magic to create new objects.</p>
                 </div>
 
                 <div class="panel" style="background: rgba(0,0,0,0.4); border-color: var(--primary);">
@@ -281,8 +303,12 @@
         </div>
 
         <div style="width: 100%;">
-            <h2 style="font-family: 'Playfair Display'; font-size: 2.5rem; color: var(--secondary); border-bottom: 2px solid var(--primary); padding-bottom: 1rem; margin-bottom: 2rem;">The Chronicled Realms</h2>
+            <h2 id="gallery-title" style="font-family: 'Playfair Display'; font-size: 2.5rem; color: var(--secondary); border-bottom: 2px solid var(--primary); padding-bottom: 1rem; margin-bottom: 2rem;">The Chronicled Realms</h2>
             <div id="scene-gallery">
+                <p>Loading magical scenes...</p>
+            </div>
+        </div>
+    </main>
                 <!-- Other users' scenes will load here -->
                 <p>Loading magical scenes...</p>
             </div>
