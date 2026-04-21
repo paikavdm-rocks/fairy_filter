@@ -122,7 +122,7 @@ const sketch = (p) => {
 
     p.setup = () => {
         const container = document.getElementById('canvas-container');
-        const canvas = p.createCanvas(container.offsetWidth, 500);
+        const canvas = p.createCanvas(container.offsetWidth, 550);
         canvas.parent(container);
         capture = p.createCapture(p.VIDEO);
         capture.size(320, 240);
@@ -223,7 +223,7 @@ const sketch = (p) => {
         }
         img.updatePixels();
     }
-    p.windowResized = () => p.resizeCanvas(document.getElementById('canvas-container').offsetWidth, 500);
+    p.windowResized = () => p.resizeCanvas(document.getElementById('canvas-container').offsetWidth, 550);
 };
 
 const myP5 = new p5(sketch);
