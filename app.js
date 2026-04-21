@@ -33,12 +33,13 @@ const db = getFirestore(app);
 
 let currentUser = null;
 let currentRealm = 'emerald';
+let selectedType = 'fairy';
 
 const themes = {
-    emerald: { primary: '#50fa7b', secondary: '#f1fa8c', bg: '#1a2a22', title: 'The Emerald Kingdom', lore: 'Nature whispers in the moss.', asset: 'assets/emerald_bg.png' },
-    ruby: { primary: '#ff5555', secondary: '#ffb86c', bg: '#2a1a1a', title: 'The Ruby Kingdom', lore: 'Fire glows in the deep.', asset: 'assets/ruby_bg.png' },
-    jade: { primary: '#8be9fd', secondary: '#50fa7b', bg: '#1a262a', title: 'The Jade Kingdom', lore: 'Ice flows like liquid glass.', asset: 'assets/jade_bg.png' },
-    amethyst: { primary: '#bd93f9', secondary: '#ff79c6', bg: '#1e1a2a', title: 'The Amethyst Kingdom', lore: 'Astral dust in the void.', asset: 'assets/amethyst_bg.png' }
+    emerald: { primary: '#50fa7b', secondary: '#f1fa8c', bg: '#1a2a22', title: 'The Emerald Kingdom', lore: 'Nature whispers in the moss.' },
+    ruby: { primary: '#ff5555', secondary: '#ffb86c', bg: '#2a1a1a', title: 'The Ruby Kingdom', lore: 'Fire glows in the deep.' },
+    jade: { primary: '#8be9fd', secondary: '#50fa7b', bg: '#1a262a', title: 'The Jade Kingdom', lore: 'Ice flows like liquid glass.' },
+    amethyst: { primary: '#bd93f9', secondary: '#ff79c6', bg: '#1e1a2a', title: 'The Amethyst Kingdom', lore: 'Astral dust in the void.' }
 };
 
 // --- DOM ELEMENTS ---
@@ -51,7 +52,6 @@ const passwordInput = document.getElementById('password');
 const userInfo = document.getElementById('user-info');
 const userDisplay = document.getElementById('user-display');
 const saveBtn = document.getElementById('save-btn');
-const clearBtn = document.getElementById('clear-btn');
 const descriptionInput = document.getElementById('scene-description');
 const sceneGallery = document.getElementById('scene-gallery');
 const itemPicker = document.getElementById('item-picker');
@@ -81,6 +81,20 @@ function applyTheme(realm) {
     document.body.style.background = `radial-gradient(circle at center, ${theme.bg} 0%, #000 100%)`;
 }
 
+// Item Picker Logic
+const itemBtns = document.querySelectorAll('.item-btn');
+itemPicker.addEventListener('click', (e) => {
+    const btn = e.target.closest('.item-btn');
+    if (!btn) return;
+    itemBtns.forEach(b => {
+        b.style.background = 'rgba(255,255,255,0.1)';
+        b.classList.remove('active');
+    });
+    btn.style.background = 'var(--primary)';
+    btn.classList.add('active');
+    selectedType = btn.dataset.type;
+});
+
 // Auth Handlers
 loginBtn.onclick = async () => { try { await signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value); } catch (e) { alert(e.message); } };
 signupBtn.onclick = async () => { try { await createUserWithEmailAndPassword(auth, emailInput.value, passwordInput.value); } catch (e) { alert(e.message); } };
@@ -97,7 +111,6 @@ window.logout = () => signOut(auth);
 
 // --- P5.JS REALISTIC ENGINE ---
 let items = [];
-let selectedType = 'fairy';
 let draggingItem = null;
 let capture;
 let backgroundImgs = {};
@@ -112,41 +125,27 @@ const sketch = (p) => {
 
     p.setup = () => {
         const container = document.getElementById('canvas-container');
-        const canvas = p.createCanvas(container.offsetWidth, 400); // RESTORED SIZE
+        const canvas = p.createCanvas(container.offsetWidth, 500); // TALLER CANVAS
         canvas.parent(container);
-        
         capture = p.createCapture(p.VIDEO);
         capture.size(320, 240);
         capture.hide();
-        
         applyTheme(currentRealm);
     };
 
     p.draw = () => {
-        // Draw Realistic Background (Cover Logic to prevent smooshing)
         let currentBg = backgroundImgs[currentRealm];
         if (currentBg) {
             let canvasRatio = p.width / p.height;
             let imgRatio = currentBg.width / currentBg.height;
             let sw, sh, sx, sy;
-            
-            if (imgRatio > canvasRatio) {
-                sh = currentBg.height;
-                sw = currentBg.height * canvasRatio;
-                sx = (currentBg.width - sw) / 2;
-                sy = 0;
-            } else {
-                sw = currentBg.width;
-                sh = currentBg.width / canvasRatio;
-                sx = 0;
-                sy = (currentBg.height - sh) / 2;
-            }
+            if (imgRatio > canvasRatio) { sh = currentBg.height; sw = currentBg.height * canvasRatio; sx = (currentBg.width - sw) / 2; sy = 0; }
+            else { sw = currentBg.width; sh = currentBg.width / canvasRatio; sx = 0; sy = (currentBg.height - sh) / 2; }
             p.image(currentBg, 0, 0, p.width, p.height, sx, sy, sw, sh);
         } else {
             p.background(themes[currentRealm].bg);
         }
         
-        // Items
         items.forEach(item => {
             p.push();
             p.translate(item.x, item.y);
@@ -154,13 +153,8 @@ const sketch = (p) => {
 
             if (item.type === 'selfie' || item.type === 'ai') {
                 p.imageMode(p.CENTER);
-                if (item.img) {
-                    p.image(item.img, 0, 0, 100, 100);
-                } else if (item.dataUrl) {
-                    item.img = p.loadImage(item.dataUrl, (loaded) => {
-                        makeTransparent(loaded);
-                    });
-                }
+                if (item.img) p.image(item.img, 0, 0, 100, 100);
+                else if (item.dataUrl) item.img = p.loadImage(item.dataUrl, (loaded) => makeTransparent(loaded));
             } else {
                 p.textAlign(p.CENTER, p.CENTER);
                 p.textSize(50);
@@ -194,13 +188,10 @@ const sketch = (p) => {
         let buff = p.createGraphics(200, 200);
         buff.translate(200, 0); buff.scale(-1, 1);
         buff.image(capture, 0, 0, 260, 200);
-        
         let mask = p.createGraphics(200, 200);
         mask.ellipse(100, 100, 200, 200);
-        
         let finalImg = buff.get();
         finalImg.mask(mask.get());
-        
         const d = finalImg.canvas.toDataURL();
         items.push({ x: p.width / 2, y: p.height / 2, type: 'selfie', img: finalImg, dataUrl: d });
         if (currentUser) addDoc(collection(db, "spirit_stickers"), { creator: currentUser.email.split('@')[0], dataUrl: d, createdAt: serverTimestamp() });
@@ -209,18 +200,11 @@ const sketch = (p) => {
     function makeTransparent(img) {
         img.loadPixels();
         for (let i = 0; i < img.pixels.length; i += 4) {
-            let r = img.pixels[i];
-            let g = img.pixels[i + 1];
-            let b = img.pixels[i + 2];
-            // If very white/close to white, make transparent
-            if (r > 240 && g > 240 && b > 240) {
-                img.pixels[i + 3] = 0;
-            }
+            if (img.pixels[i] > 240 && img.pixels[i+1] > 240 && img.pixels[i+2] > 240) img.pixels[i+3] = 0;
         }
         img.updatePixels();
     }
-    
-    p.windowResized = () => p.resizeCanvas(document.getElementById('canvas-container').offsetWidth, 300);
+    p.windowResized = () => p.resizeCanvas(document.getElementById('canvas-container').offsetWidth, 500);
 };
 
 const myP5 = new p5(sketch);
@@ -233,10 +217,7 @@ aiBtn.onclick = async () => {
     try {
         const res = await fetch("https://itp-ima-replicate-proxy.web.app/api/create_n_get", {
             method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ 
-                model: "google/nano-banana",
-                input: { prompt: `A standalone, isolated magical item: ${pr}. Detailed fantasy, cinematic, isolated on pure white background.` }
-            })
+            body: JSON.stringify({ model: "google/nano-banana", input: { prompt: `A standalone, isolated magical item: ${pr}. Detailed fantasy, cinematic, isolated on pure white background.` } })
         });
         const d = await res.json();
         const url = Array.isArray(d.output) ? d.output[0] : d.output;
