@@ -82,16 +82,23 @@ let syncingFromServer = false;
 
 window.syncRealmItems = () => {
     if (!currentUser || syncingFromServer) return;
-    setDoc(doc(db, "realms", currentRealm), { 
-        items: items.map(i => ({ id: i.id, x: i.x, y: i.y, type: i.type, scale: i.scale || 1, dataUrl: i.dataUrl || null, accessory: i.accessory || null })) 
-    });
+    const cleanItems = items.map(i => ({ 
+        id: i.id || generateId(), 
+        x: i.x, y: i.y, 
+        type: i.type || 'flower', 
+        scale: i.scale || 1, 
+        dataUrl: i.dataUrl || null, 
+        accessory: i.accessory || null 
+    }));
+    setDoc(doc(db, "scenes", "live_realm_" + currentRealm), { items: cleanItems })
+        .catch(e => console.error("Firestore DB Error: ", e));
 };
 
 window.listenToRealm = (realmName) => {
     if (unsubRealm) unsubRealm();
-    unsubRealm = onSnapshot(doc(db, "realms", realmName), (snapshot) => {
+    unsubRealm = onSnapshot(doc(db, "scenes", "live_realm_" + realmName), (snapshot) => {
         if (!snapshot.exists()) {
-            if (currentUser) setDoc(doc(db, "realms", realmName), { items: [] });
+            if (currentUser) setDoc(doc(db, "scenes", "live_realm_" + realmName), { items: [] });
             return;
         }
         syncingFromServer = true;
