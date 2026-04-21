@@ -42,19 +42,17 @@ const themes = {
     amethyst: { primary: '#bd93f9', secondary: '#ff79c6', bg: '#1e1a2a', title: 'The Amethyst Kingdom', lore: 'Astral dust.' }
 };
 
-// --- DOM SELECTION (LAZY) ---
 const getEl = (id) => document.getElementById(id);
 
 function applyTheme(realm) {
     const theme = themes[realm];
+    if (!theme) return;
     const root = document.documentElement;
     root.style.setProperty('--primary', theme.primary);
     root.style.setProperty('--secondary', theme.secondary);
     root.style.setProperty('--background', theme.bg);
-    const title = getEl('main-title');
-    const sub = getEl('sub-title');
-    if (title) title.innerText = theme.title;
-    if (sub) sub.innerText = theme.lore;
+    if (getEl('main-title')) getEl('main-title').innerText = theme.title;
+    if (getEl('sub-title')) getEl('sub-title').innerText = theme.lore;
     document.body.style.background = `radial-gradient(circle at center, ${theme.bg} 0%, #000 100%)`;
 }
 
@@ -64,6 +62,7 @@ let draggingItem = null;
 let capture;
 let backgroundImgs = {};
 let bodypix;
+let canvasReady = false;
 
 const sketch = (p) => {
     p.preload = () => {
@@ -76,14 +75,17 @@ const sketch = (p) => {
     p.setup = () => {
         const container = getEl('canvas-container');
         const w = container ? container.offsetWidth : 800;
-        const canvas = p.createCanvas(w, 550);
+        const canvas = p.createCanvas(w > 0 ? w : 800, 550);
         canvas.parent('canvas-container');
         
         capture = p.createCapture(p.VIDEO);
         capture.size(320, 240);
         capture.hide();
         
-        bodypix = ml5.bodyPix(capture, { multiplier: 0.75, outputStride: 16, segmentationThreshold: 0.5 }, () => console.log('BodyPix ready'));
+        bodypix = ml5.bodyPix(capture, { multiplier: 0.75, outputStride: 16, segmentationThreshold: 0.5 }, () => {
+            console.log('BodyPix ready');
+            canvasReady = true;
+        });
         
         applyTheme(currentRealm);
         initUIListeners();
@@ -91,6 +93,8 @@ const sketch = (p) => {
 
     p.draw = () => {
         let currentBg = backgroundImgs[currentRealm];
+        p.background(themes[currentRealm].bg);
+        
         if (currentBg && currentBg.width > 1) {
             let canvasRatio = p.width / p.height;
             let imgRatio = currentBg.width / currentBg.height;
@@ -98,13 +102,10 @@ const sketch = (p) => {
             if (imgRatio > canvasRatio) { sh = currentBg.height; sw = currentBg.height * canvasRatio; sx = (currentBg.width - sw) / 2; sy = 0; }
             else { sw = currentBg.width; sh = currentBg.width / canvasRatio; sx = 0; sy = (currentBg.height - sh) / 2; }
             p.image(currentBg, 0, 0, p.width, p.height, sx, sy, sw, sh);
-        } else {
-            p.background(themes[currentRealm].bg);
         }
         
         items.forEach(item => {
-            p.push();
-            p.translate(item.x, item.y);
+            p.push(); p.translate(item.x, item.y);
             if (p.dist(p.mouseX, p.mouseY, item.x, item.y) < 50) p.scale(1.1);
             if (item.type === 'selfie' || item.type === 'ai') {
                 p.imageMode(p.CENTER);
@@ -128,9 +129,10 @@ const sketch = (p) => {
     };
 
     p.mousePressed = () => {
+        if (p.mouseX < 0 || p.mouseX > p.width || p.mouseY < 0 || p.mouseY > p.height) return;
         let f = false;
         for (let i = items.length - 1; i >= 0; i--) { if (p.dist(p.mouseX, p.mouseY, items[i].x, items[i].y) < 50) { draggingItem = items[i]; f = true; break; } }
-        if (!f && p.mouseX > 0 && p.mouseX < p.width && p.mouseY > 0 && p.mouseY < p.height) items.push({ x: p.mouseX, y: p.mouseY, type: selectedType });
+        if (!f) items.push({ x: p.mouseX, y: p.mouseY, type: selectedType });
     };
     p.mouseDragged = () => { if (draggingItem) { draggingItem.x = p.mouseX; draggingItem.y = p.mouseY; } };
     p.mouseReleased = () => { draggingItem = null; };
@@ -144,21 +146,33 @@ const sketch = (p) => {
     };
 
     window.takeSelfie = () => {
+        console.log("TakeSelfie called!");
         if (!bodypix) return alert("Mirror warming up...");
+        const btn = getEl('selfie-btn');
+        if (btn) { btn.innerText = "CAPTURING SPIRIT..."; btn.style.opacity = "0.5"; }
+        
         bodypix.segment(capture, (error, result) => {
-            if (error) return;
+            if (btn) { btn.innerText = "📸 CAPTURE SPIRIT"; btn.style.opacity = "1"; }
+            if (error) return console.error(error);
+            
             let buff = p.createGraphics(320, 240);
             buff.image(capture, 0, 0); buff.loadPixels();
             for (let i = 0; i < buff.pixels.length; i += 4) { if (result.mask.data[i/4] === 0) buff.pixels[i+3] = 0; }
             buff.updatePixels();
+            
             let finalBuff = p.createGraphics(200, 200);
             finalBuff.translate(200, 0); finalBuff.scale(-1, 1);
             finalBuff.image(buff, -60, 0, 320, 240);
+            
             const accs = ['wings', 'crown', 'ears', 'necklace', null];
             const randomAcc = accs[Math.floor(Math.random() * accs.length)];
             const d = finalBuff.canvas.toDataURL();
+            
             items.push({ x: p.width / 2, y: p.height / 2, type: 'selfie', img: finalBuff.get(), dataUrl: d, accessory: randomAcc });
-            if (currentUser) addDoc(collection(db, "spirit_stickers"), { creator: currentUser.email.split('@')[0], dataUrl: d, createdAt: serverTimestamp(), accessory: randomAcc });
+            if (currentUser) {
+                addDoc(collection(db, "spirit_stickers"), { creator: currentUser.email.split('@')[0], dataUrl: d, createdAt: serverTimestamp(), accessory: randomAcc })
+                .catch(e => console.error("Firestore Error:", e));
+            }
         });
     };
 
@@ -169,21 +183,28 @@ const sketch = (p) => {
     }
     p.windowResized = () => {
         const container = getEl('canvas-container');
-        if (container) p.resizeCanvas(container.offsetWidth, 550);
+        if (container && container.offsetWidth > 0) p.resizeCanvas(container.offsetWidth, 550);
     };
 };
 
 const myP5 = new p5(sketch);
 
-// --- UI INITIALIZATION ---
+// --- UI LISTENERS (ROBUST) ---
 function initUIListeners() {
-    const selfieBtn = getEl('selfie-btn');
-    if (selfieBtn) selfieBtn.onclick = () => window.takeSelfie();
+    console.log("Initializing UI Listeners...");
+    
+    // Delegation for Selfie Button
+    document.body.addEventListener('click', (e) => {
+        if (e.target.id === 'selfie-btn' || e.target.closest('#selfie-btn')) {
+            console.log("Selfie button clicked!");
+            window.takeSelfie();
+        }
+    });
 
     const aiBtn = getEl('ai-btn');
-    const aiPrompt = getEl('ai-prompt');
-    const aiCreationsBank = getEl('ai-creations');
     if (aiBtn) aiBtn.onclick = async () => {
+        const aiPrompt = getEl('ai-prompt');
+        const aiCreationsBank = getEl('ai-creations');
         const pr = aiPrompt.value; if (!pr) return;
         const loader = document.createElement('div');
         loader.innerHTML = "🔮"; loader.style = "width:50px; height:50px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.1); border-radius:50%; animation: spin 2s linear infinite;";
@@ -202,11 +223,10 @@ function initUIListeners() {
 
     const itemPicker = getEl('item-picker');
     if (itemPicker) {
-        const itemBtns = document.querySelectorAll('.item-btn');
         itemPicker.onclick = (e) => {
             const btn = e.target.closest('.item-btn');
             if (btn) {
-                itemBtns.forEach(b => b.style.background = 'rgba(255,255,255,0.1)');
+                document.querySelectorAll('.item-btn').forEach(b => b.style.background = 'rgba(255,255,255,0.1)');
                 btn.style.background = 'var(--primary)';
                 selectedType = btn.dataset.type;
             }
@@ -225,10 +245,14 @@ function initUIListeners() {
 
     const loginBtn = getEl('login-btn');
     const signupBtn = getEl('signup-btn');
-    const emailInput = getEl('email');
-    const passwordInput = getEl('password');
-    if (loginBtn) loginBtn.onclick = async () => { try { await signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value); } catch (e) { alert(e.message); } };
-    if (signupBtn) signupBtn.onclick = async () => { try { await createUserWithEmailAndPassword(auth, emailInput.value, passwordInput.value); } catch (e) { alert(e.message); } };
+    if (loginBtn) loginBtn.onclick = async () => { 
+        const email = getEl('email').value; const pass = getEl('password').value;
+        try { await signInWithEmailAndPassword(auth, email, pass); } catch (e) { alert(e.message); } 
+    };
+    if (signupBtn) signupBtn.onclick = async () => { 
+        const email = getEl('email').value; const pass = getEl('password').value;
+        try { await createUserWithEmailAndPassword(auth, email, pass); } catch (e) { alert(e.message); } 
+    };
 
     const saveBtn = getEl('save-btn');
     if (saveBtn) saveBtn.onclick = async () => {
@@ -247,11 +271,13 @@ function initUIListeners() {
 
 onAuthStateChanged(auth, (user) => {
     if (user) {
-        currentUser = user; getEl('auth-overlay').classList.add('hidden'); getEl('user-info').classList.remove('hidden');
-        getEl('user-display').innerText = `Elder ${user.email.split('@')[0]}`;
+        currentUser = user; if (getEl('auth-overlay')) getEl('auth-overlay').classList.add('hidden');
+        if (getEl('user-info')) getEl('user-info').classList.remove('hidden');
+        if (getEl('user-display')) getEl('user-display').innerText = `Elder ${user.email.split('@')[0]}`;
         loadGallery(); listenToSharedStickers();
     } else {
-        currentUser = null; getEl('auth-overlay').classList.remove('hidden'); getEl('user-info').classList.add('hidden');
+        currentUser = null; if (getEl('auth-overlay')) getEl('auth-overlay').classList.remove('hidden');
+        if (getEl('user-info')) getEl('user-info').classList.add('hidden');
     }
 });
 
