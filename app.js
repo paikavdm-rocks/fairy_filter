@@ -399,10 +399,11 @@ const sketch = (p) => {
             const randomAcc = accs[Math.floor(Math.random() * accs.length)];
             const d = finalBuff.canvas.toDataURL();
             
-            items.push({ id: generateId(), x: p.width / 2, y: p.height / 2, type: 'selfie', img: finalBuff.get(), dataUrl: d, accessory: randomAcc, scale: 1 });
+            const item = { id: generateId(), x: p.width / 2, y: p.height / 2, type: 'selfie', img: finalBuff.get(), dataUrl: d, accessory: randomAcc, scale: 1 };
+            items.push(item);
             
             if (currentUser) {
-                window.syncRealmItems();
+                window.syncRealmItems(item);
                 addDoc(collection(db, "spirit_stickers"), { 
                     creator: currentUser.email.split('@')[0], 
                     dataUrl: d, 
