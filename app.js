@@ -184,8 +184,8 @@ const sketch = (p) => {
     };
 
     p.draw = () => {
-        let currentBg = backgroundImgs[currentRealm];
-        p.background(themes[currentRealm].bg);
+        let currentBg = backgroundImgs[currentTheme];
+        p.background(themes[currentTheme].bg);
         if (currentBg && currentBg.width > 1) {
             // Show full image stretched to fill canvas
             p.image(currentBg, 0, 0, p.width, p.height);
@@ -264,7 +264,7 @@ const sketch = (p) => {
             const chargeScale = p.constrain(p.map(holdTime, 0, 2000, 0.5, 4), 0.5, 4);
             p.push();
             p.noFill();
-            p.stroke(themes[currentRealm].primary);
+            p.stroke(themes[currentTheme].primary);
             p.strokeWeight(4);
             p.translate(chargingItem.x, chargingItem.y);
             // Spin ring
