@@ -29,7 +29,9 @@ import {
     set, 
     update, 
     remove,
-    off
+    off,
+    onValue,
+    push
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 // --- FIREBASE SETUP ---
@@ -404,12 +406,13 @@ const sketch = (p) => {
             
             if (currentUser) {
                 window.syncRealmItems(item);
-                addDoc(collection(db, "spirit_stickers"), { 
+                // Save to shared bank in RTDB
+                const bankRef = push(ref(rtdb, "spirit_bank"));
+                set(bankRef, { 
                     creator: currentUser.email.split('@')[0], 
                     dataUrl: d, 
-                    createdAt: serverTimestamp(), 
                     accessory: randomAcc 
-                }).catch(e => console.warn("Sticker save:", e));
+                }).catch(e => console.warn("Bank save:", e));
             }
         } catch (e) {
             alert("Camera Capture Error: " + e.message);
@@ -519,12 +522,15 @@ function initUIListeners() {
         if (!currentUser) return alert("You must be logged in to commit lore!");
         saveBtn.innerText = "RECORDING...";
         try {
-            await addDoc(collection(db, "scenes"), {
+            // Save to Public RTDB Exhibition for SharedMinds style visibility
+            const galleryRef = ref(rtdb, 'public_exhibition');
+            const newSceneRef = push(galleryRef);
+            await set(newSceneRef, {
                 uid: currentUser.uid, 
                 creator: currentUser.email.split('@')[0], 
-                realm: currentTheme, // The theme choice
+                realm: currentTheme,
                 arrangement: items.map(i => ({ x: i.x, y: i.y, type: i.type, dataUrl: i.dataUrl || null, accessory: i.accessory || null, scale: i.scale || 1 })),
-                createdAt: serverTimestamp()
+                createdAt: serverTimestamp() // Note: RTDB serverTimestamp is slightly different but often handled by client SDK
             }); alert("Recorded to the Grand Exhibition!");
         } catch (e) { alert(e.message); }
         saveBtn.innerText = "RECORD SCENE";
@@ -551,42 +557,46 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 function listenToSharedStickers() {
-    onSnapshot(query(collection(db, "spirit_stickers"), orderBy("createdAt", "desc"), limit(30)), (sn) => {
+    const bankRef = ref(rtdb, "spirit_bank");
+    onValue(bankRef, (snapshot) => {
         const shared = getEl('shared-stickers');
-        if (shared) {
+        if (shared && snapshot.exists()) {
             shared.innerHTML = "";
-            sn.forEach(doc => {
-                const d = doc.data(); const img = document.createElement('img');
+            snapshot.forEach(child => {
+                const d = child.val(); 
+                const img = document.createElement('img');
                 img.src = d.dataUrl; img.style = "width:50px; height:50px; border-radius:50%; cursor:pointer; border:2px solid var(--primary); margin:5px; object-fit: cover;";
                 img.onclick = () => window.addSticker(d.dataUrl, 'selfie', d.accessory);
-                shared.appendChild(img);
+                shared.insertBefore(img, shared.firstChild); // Newest first
             });
         }
     });
 }
 
 function loadGallery() {
-    onSnapshot(query(collection(db, "scenes"), orderBy("createdAt", "desc"), limit(20)), (sn) => {
+    const galleryRef = ref(rtdb, "public_exhibition");
+    onValue(galleryRef, (snapshot) => {
         const gal = getEl('scene-gallery');
-        if (gal) {
+        if (gal && snapshot.exists()) {
             gal.innerHTML = "";
-            sn.forEach(doc => {
-                const d = doc.data(); 
+            snapshot.forEach(child => {
+                const d = child.val(); 
                 const card = document.createElement('div');
                 card.className = 'scene-card'; card.style.borderColor = themes[d.realm || 'emerald'].primary;
                 card.innerHTML = `<h3>${d.creator}'s ${d.realm || 'emerald'} Realm</h3><p style="font-size:0.7rem; opacity:0.6;">Click to enter and edit together!</p>`;
                 card.onclick = () => {
-                    currentRealm = d.uid; // Switch to their LIVE sync ID
+                    currentRealm = d.uid; 
                     currentTheme = d.realm || 'emerald';
                     if (getEl('main-title')) getEl('main-title').innerText = `${d.creator}'s Kingdom`;
                     applyTheme(currentTheme);
                     window.listenToRealm(currentRealm);
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 };
-                gal.appendChild(card);
+                gal.insertBefore(card, gal.firstChild); // Newest first
             });
         }
     });
 }
+
 window.logout = () => signOut(auth).then(() => location.reload());
 function getEmoji(t) { return { 'fairy': '🧚', 'mushroom': '🍄', 'crystal': '💎', 'flower': '🌸', 'star': '⭐', 'wand': '🪄' }[t] || '✨'; }
