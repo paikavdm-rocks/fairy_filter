@@ -476,6 +476,17 @@ function initUIListeners() {
         } catch (e) { loader.innerHTML = "❌"; setTimeout(() => loader.remove(), 2000); }
     };
 
+    const suggestions = document.querySelectorAll('.suggestion-chip');
+    suggestions.forEach(chip => {
+        chip.onclick = () => {
+            const aiPrompt = getEl('ai-prompt');
+            if (aiPrompt) {
+                aiPrompt.value = chip.innerText;
+                aiPrompt.focus();
+            }
+        };
+    });
+
     const itemPicker = getEl('item-picker');
     if (itemPicker) {
         itemPicker.onclick = (e) => {

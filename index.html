@@ -155,12 +155,21 @@
                     </div>
 
                     <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid var(--border);">
-                        <h3 style="font-size: 1rem; color: var(--accent); margin-bottom: 10px;">🔮 Conjurer</h3>
-                        <div style="display: flex; gap: 10px;">
-                            <input type="text" id="ai-prompt" placeholder="A golden egg..." style="flex: 1; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: white; border-radius: 10px;">
-                            <button id="ai-btn" style="padding: 10px 15px; background: var(--accent); color: white; border: none; border-radius: 10px; cursor: pointer;">✨</button>
+                        <h3 style="font-size: 1.1rem; color: var(--accent); margin-bottom: 5px;">🔮 Spirit Conjurer</h3>
+                        <p style="font-size: 0.75rem; opacity: 0.7; margin-bottom: 12px;">Type any magical object you can imagine, and the spirits will manifest it for you.</p>
+                        
+                        <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+                            <input type="text" id="ai-prompt" placeholder="A dragon egg..." style="flex: 1; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: white; border-radius: 10px;">
+                            <button id="ai-btn" style="padding: 10px 20px; background: var(--accent); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: bold;">CONJURE</button>
                         </div>
-                        <div id="ai-creations" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; min-height: 40px;"></div>
+
+                        <div id="ai-suggestions" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 15px;">
+                            <span class="suggestion-chip" style="font-size: 0.7rem; background: rgba(255,121,198,0.1); border: 1px solid var(--accent); padding: 4px 8px; border-radius: 20px; cursor: pointer; color: var(--accent);">Golden Harp</span>
+                            <span class="suggestion-chip" style="font-size: 0.7rem; background: rgba(255,121,198,0.1); border: 1px solid var(--accent); padding: 4px 8px; border-radius: 20px; cursor: pointer; color: var(--accent);">Phoenix Feather</span>
+                            <span class="suggestion-chip" style="font-size: 0.7rem; background: rgba(255,121,198,0.1); border: 1px solid var(--accent); padding: 4px 8px; border-radius: 20px; cursor: pointer; color: var(--accent);">Magic Potion</span>
+                        </div>
+                        
+                        <div id="ai-creations" style="display: flex; flex-wrap: wrap; gap: 8px; min-height: 40px; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 10px;"></div>
                     </div>
 
                     <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid var(--border);">
