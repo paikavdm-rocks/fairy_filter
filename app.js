@@ -16,9 +16,9 @@ import {
     serverTimestamp,
     limit,
     where,
-    getDocs,
     doc,
-    setDoc
+    setDoc,
+    deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // --- FIREBASE SETUP ---
@@ -87,53 +87,70 @@ const generateId = () => Math.random().toString(36).substr(2, 9);
 let unsubRealm = null;
 let syncingFromServer = false;
 
-window.syncRealmItems = () => {
-    if (!currentUser || syncingFromServer) return;
-    const cleanItems = items.map(i => ({ 
-        id: i.id || generateId(), 
-        x: i.x, y: i.y, 
-        type: i.type || 'flower', 
-        scale: i.scale || 1, 
-        dataUrl: i.dataUrl || null, 
-        accessory: i.accessory || null 
-    }));
-    setDoc(doc(db, "scenes", "live_realm_" + currentRealm), { items: cleanItems })
-        .catch(e => console.error("Firestore DB Error: ", e));
+// --- GLOBAL REAL-TIME SYNC ---
+window.syncRealmItems = (item = null, isDeleted = false) => {
+    if (!currentUser) return;
+    
+    // Path to the specific item document
+    const itemRef = doc(db, "realms", currentRealm, "items", item.id);
+    
+    if (isDeleted) {
+        deleteDoc(itemRef).catch(e => console.error("Sync Delete Error:", e));
+        return;
+    }
+
+    const cleanItem = {
+        id: item.id,
+        x: item.x,
+        y: item.y,
+        type: item.type,
+        scale: item.scale || 1,
+        lastModified: serverTimestamp()
+    };
+    if (item.dataUrl) cleanItem.dataUrl = item.dataUrl;
+    if (item.accessory) cleanItem.accessory = item.accessory;
+
+    setDoc(itemRef, cleanItem).catch(e => console.error("Sync Push Error:", e));
 };
 
 window.listenToRealm = (realmName) => {
     if (unsubRealm) unsubRealm();
-    unsubRealm = onSnapshot(doc(db, "scenes", "live_realm_" + realmName), (snapshot) => {
-        try {
-            if (!snapshot.exists()) {
-                if (currentUser) setDoc(doc(db, "scenes", "live_realm_" + realmName), { items: [] });
-                return;
+    
+    // Listen to the collection of items within the realm
+    const q = query(collection(db, "realms", realmName, "items"));
+    unsubRealm = onSnapshot(q, (snapshot) => {
+        syncingFromServer = true;
+        
+        const remoteIds = [];
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            remoteIds.push(doc.id);
+            
+            const local = items.find(i => i.id === doc.id);
+            
+            if (local) {
+                // Only update if someone else moved it (and we aren't currently dragging it)
+                if (local !== draggingItem) {
+                    local.x = data.x;
+                    local.y = data.y;
+                    local.scale = data.scale;
+                }
+            } else {
+                // New item from someone else!
+                const newItem = { 
+                    ...data, 
+                    img: data.dataUrl && window.myP5 ? window.myP5.loadImage(data.dataUrl, (loaded) => window.makeTransparent(loaded)) : null 
+                };
+                items.push(newItem);
             }
-            syncingFromServer = true;
-            const data = snapshot.data();
-            if (data.items) {
-                const remoteIds = data.items.map(r => r.id);
-                items = items.filter(i => remoteIds.includes(i.id) || i === draggingItem || i === chargingItem);
-                
-                data.items.forEach(rmt => {
-                    const loc = items.find(i => i.id === rmt.id);
-                    if (loc) {
-                        if (loc !== draggingItem) {
-                            loc.x = rmt.x; loc.y = rmt.y; loc.scale = rmt.scale;
-                        }
-                    } else {
-                        const newItem = { ...rmt, img: rmt.dataUrl && window.myP5 ? window.myP5.loadImage(rmt.dataUrl, (loaded) => loaded.mask ? null : window.makeTransparent(loaded)) : null };
-                        items.push(newItem);
-                    }
-                });
-            }
-            syncingFromServer = false;
-        } catch (err) {
-            alert("Sync Read Error: " + err.message);
-            console.error(err);
-        }
+        });
+        
+        // Remove locally anything that isn't on the server
+        items = items.filter(i => remoteIds.includes(i.id) || i === draggingItem || i === chargingItem);
+        
+        syncingFromServer = false;
     }, (error) => {
-        alert("Firestore Network Guard: " + error.message);
+        console.error("Firestore Listen Guard:", error);
     });
 };
 
@@ -254,8 +271,8 @@ const sketch = (p) => {
             if (p.dist(p.mouseX, p.mouseY, items[i].x, items[i].y) < 50 * s) { 
                 f = true; 
                 if (selectedType === 'eraser') {
-                    items.splice(i, 1);
-                    if (currentUser) window.syncRealmItems();
+                    const deleted = items.splice(i, 1)[0];
+                    if (currentUser) window.syncRealmItems(deleted, true);
                     return; // deleted, do nothing else
                 }
                 draggingItem = items[i]; 
@@ -268,33 +285,49 @@ const sketch = (p) => {
             chargeStartTime = p.millis();
         }
     };
-    p.mouseDragged = () => { if (draggingItem) { draggingItem.x = p.mouseX; draggingItem.y = p.mouseY; } };
+    p.mouseDragged = () => { 
+        if (draggingItem) { 
+            draggingItem.x = p.mouseX; 
+            draggingItem.y = p.mouseY; 
+            // Optional: Live Dragging Sync (Throttle to save calls)
+            if (p.frameCount % 5 === 0) window.syncRealmItems(draggingItem);
+        } 
+    };
     p.mouseReleased = () => { 
         let changed = false;
+        let lastItem = null;
         if (chargingItem && !draggingItem) {
             const holdTime = p.millis() - chargeStartTime;
             const finalScale = p.constrain(p.map(holdTime, 0, 2000, 0.5, 4), 0.5, 4);
-            items.push({ id: generateId(), x: chargingItem.x, y: chargingItem.y, type: chargingItem.type, scale: finalScale });
+            lastItem = { id: generateId(), x: chargingItem.x, y: chargingItem.y, type: chargingItem.type, scale: finalScale };
+            items.push(lastItem);
             changed = true;
         } else if (draggingItem) {
+            lastItem = draggingItem;
             changed = true;
         }
         chargingItem = null;
         draggingItem = null; 
-        if (changed && currentUser) window.syncRealmItems();
+        if (changed && currentUser) window.syncRealmItems(lastItem);
     };
     p.keyPressed = () => { 
         if (p.keyCode === p.DELETE || p.keyCode === p.BACKSPACE) {
-            items = items.filter(i => p.dist(p.mouseX, p.mouseY, i.x, i.y) > 50); 
-            if (currentUser) window.syncRealmItems();
+            items = items.filter(i => {
+                if (p.dist(p.mouseX, p.mouseY, i.x, i.y) < 50) {
+                    if (currentUser) window.syncRealmItems(i, true);
+                    return false;
+                }
+                return true;
+            }); 
         }
     };
 
     window.addSticker = (url, type, acc = null) => {
         p.loadImage(url, (img) => { 
             window.makeTransparent(img); 
-            items.push({ id: generateId(), x: p.width / 2, y: p.height / 2, type: type, img: img, dataUrl: img.canvas?.toDataURL() || url, accessory: acc, scale: 1 }); 
-            if (currentUser) window.syncRealmItems();
+            const item = { id: generateId(), x: p.width / 2, y: p.height / 2, type: type, img: img, dataUrl: img.canvas?.toDataURL() || url, accessory: acc, scale: 1 };
+            items.push(item); 
+            if (currentUser) window.syncRealmItems(item);
         });
     };
 
