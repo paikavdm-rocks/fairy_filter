@@ -3,16 +3,74 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>The Magic Mirror</title>
-  <!-- Firebase Serverless Networking -->
+  <title>Fairytopia Battles</title>
+  <!-- Firebase Serverless Networking & Auth -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  
+  <!-- WebRTC Livestreaming -->
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/addons/p5.sound.min.js"></script>
   <script src="https://unpkg.com/ml5@1/dist/ml5.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Quicksand:wght@400;700&family=Caveat:wght@600&display=swap" rel="stylesheet">
   <style>
+    /* Full-Screen Login Overlay */
+    #login-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(20, 0, 40, 0.95);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+    }
+    .login-box {
+      background: #e8cfa6;
+      background-image: radial-gradient(circle at 50% 50%, #e8cfa6 0%, #c49a6c 100%);
+      padding: 40px;
+      border-radius: 10px;
+      border: 3px solid #8b5a2b;
+      box-shadow: 0 0 40px rgba(255, 0, 255, 0.6), inset 0 0 30px rgba(139, 90, 43, 0.4);
+      text-align: center;
+      max-width: 400px;
+      width: 85%;
+    }
+    .login-box h2 {
+      font-family: 'Cinzel Decorative', cursive;
+      color: #4a2e15;
+      margin-top: 0;
+      font-size: 2rem;
+    }
+    .login-input {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border-radius: 5px;
+      border: 2px solid #8b5a2b;
+      background: rgba(255,255,255,0.85);
+      font-family: 'Quicksand', sans-serif;
+      box-sizing: border-box;
+      font-size: 1.1rem;
+    }
+    .login-btn {
+      background: linear-gradient(90deg, #ff00ff, #00ffff);
+      color: black;
+      border: none;
+      padding: 14px 20px;
+      border-radius: 30px;
+      font-family: 'Quicksand', sans-serif;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 15px;
+      width: 100%;
+      font-size: 1.1rem;
+      box-shadow: 0 0 15px rgba(255,0,255,0.4);
+    }
+    
     body {
       margin: 0;
       padding: 0;
@@ -40,26 +98,78 @@
       text-shadow: 0 0 20px #ff00ff, 0 0 40px #ff00ff;
     }
     .instructions {
-      font-family: 'Caveat', cursive;
-      font-size: 1.6rem;
-      color: #4a2e15; /* Dark brown ink */
-      max-width: 650px;
+      font-family: 'Cinzel Decorative', cursive;
+      font-size: 1.3rem;
+      color: #fff;
+      max-width: 700px;
       margin: 0 auto;
-      text-align: left;
-      line-height: 1.3;
-      /* Brown magical parchment paper effect */
-      background: #e8cfa6;
-      background-image: radial-gradient(circle at 50% 50%, #e8cfa6 0%, #c49a6c 100%);
-      padding: 20px 40px;
-      border-radius: 3px;
-      border: 3px solid #8b5a2b;
-      box-shadow: 8px 8px 20px rgba(0,0,0,0.6), inset 0 0 30px rgba(139, 90, 43, 0.4);
+      text-align: center;
+      line-height: 1.6;
+      /* Super Magical Shimmering Box */
+      background: rgba(42, 8, 69, 0.6);
+      backdrop-filter: blur(15px);
+      padding: 40px 60px;
+      border-radius: 60px 10px 60px 10px; /* Asymmetric "organic" magic shape */
+      border: 3px solid rgba(255, 186, 255, 0.4);
+      box-shadow: 0 0 50px rgba(255, 0, 255, 0.5), inset 0 0 30px rgba(0, 255, 255, 0.3);
       position: relative;
+      animation: boxPulsate 4s ease-in-out infinite;
+    }
+    @keyframes boxPulsate {
+      0%, 100% { border-color: rgba(255, 186, 255, 0.4); box-shadow: 0 0 50px rgba(255, 0, 255, 0.5); }
+      50% { border-color: rgba(0, 255, 255, 0.6); box-shadow: 0 0 70px rgba(0, 255, 255, 0.4); }
+    }
+    #instr-0 {
+      font-size: 2.8rem;
+      color: #ffbaff;
+      text-shadow: 0 0 20px #ff00ff, 0 0 40px #ffbaff;
+      margin-bottom: 25px;
+      display: block;
     }
     .instructions p {
-      margin: 5px 0;
+      margin: 15px 0;
     }
-    #canvas-container {
+    .instruction-step {
+      opacity: 0;
+      filter: blur(10px);
+      transform: scale(1.2);
+    }
+    .fly-in {
+      animation: fairyExplosion 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+    @keyframes fairyExplosion {
+      0% {
+        opacity: 0;
+        transform: scale(0) rotate(20deg);
+        filter: blur(30px) brightness(5) contrast(2);
+        color: #fff;
+        letter-spacing: 20px;
+        text-shadow: 0 0 20px #ff00ff, 0 0 40px #00ffff, 0 0 80px #fff;
+      }
+      50% {
+        opacity: 1;
+        transform: scale(1.5) rotate(-5deg);
+        filter: blur(10px) brightness(2);
+        letter-spacing: 5px;
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1) rotate(0deg);
+        filter: blur(0) brightness(1);
+        text-shadow: 0 0 10px rgba(255, 186, 255, 0.8);
+        letter-spacing: normal;
+      }
+    }
+    #mirrors-gallery {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 30px;
+      justify-content: center;
+      width: 95%;
+      max-width: 1600px;
+      margin-bottom: 40px;
+    }
+    .mirror-frame {
       position: relative;
       padding: 10px;
       background: linear-gradient(45deg, #ff00ff, #00ffff, #ff00ff);
@@ -67,7 +177,6 @@
       animation: gradientBG 5s ease infinite;
       border-radius: 20px;
       box-shadow: 0 0 50px rgba(255, 0, 255, 0.5);
-      margin-bottom: 20px;
       display: inline-block;
     }
     @keyframes gradientBG {
@@ -84,22 +193,51 @@
   </style>
 </head>
 <body>
+  <!-- Login Authentication Gate Overlay -->
+  <div id="login-overlay">
+    <div class="login-box">
+      <h2>Enter the Kingdom</h2>
+      <p style="color: #4a2e15; font-family: 'Caveat', cursive; font-size: 1.5rem; margin-bottom: 25px;">Please verify your identity to access the Mirror.</p>
+      
+      <input type="email" id="auth-email" class="login-input" placeholder="Magical Email Address">
+      <input type="password" id="auth-password" class="login-input" placeholder="Secret Password">
+      
+      <button class="login-btn" onclick="loginWithEmail()">Enter with Magic Words</button>
+      
+      <p style="color: #4a2e15; margin: 20px 0; font-weight: bold;">— OR —</p>
+      
+      <button class="login-btn" style="background: white; border: 2px solid #ddd;" onclick="loginWithGoogle()">Sign in with Google</button>
+    </div>
+  </div>
+
   <header>
-    <h1>The Magic Mirror</h1>
+    <h1>Fairytopia Kingdom</h1>
+    <h2 style="font-family: 'Cinzel Decorative', cursive; font-size: 1.5rem; color: #00ffff; text-shadow: 0 0 10px #00ffff; margin-top: -10px; margin-bottom: 20px;">Let the battles begin</h2>
     <div class="instructions">
-      <p style="text-align: center; font-weight: bold; font-size: 1.2rem; margin-bottom: 10px;">✨ How to play ✨</p>
-      <p><b>1. Conjure:</b> Type a magical item below and cast the spell to conjure your object.</p>
-      <p><b>2. Grasp:</b> Hover your hand in front of the camera to grab the magical item.</p>
-      <p><b>3. The Aura:</b> Rapidly shake your <b>open hand</b> back and forth to reveal your glowing Fairy aura!</p>
-      <p><b>4. The Grand Finale:</b> Close your hand into a <b>tight fist</b> to cast the ultimate spell! The mirror will take a magical portrait and permanently transform you and your room into a majestic Fairy woodland.</p>
+      <p id="instr-0" class="instruction-step fly-in">✨ The Fairytopia Trial ✨</p>
+      <p id="instr-1" class="instruction-step fly-in" style="animation-delay: 0.5s;">Create your fairy name to enter the kingdom.</p>
+      <p id="instr-2" class="instruction-step" style="display: none;">Type your magical item below and turn it into your wand.</p>
+      
+      <!-- ROUND 1 -->
+      <p id="instr-3" class="instruction-step" style="display: none;"><b>ROUND 1: THE GATHERING</b><br>Collect glowing Spirit Orbs with your wand to store Fairy Mana!</p>
+      
+      <p id="instr-4" class="instruction-step" style="display: none;"><b>ROUND 2: THE SPELL DUEL</b><br>Fire beats Earth, Earth beats Water, and Water beats Fire. Basic spells cost 5 mana. Use the Mega Spell for massive damage, but it will cost your own Spirit!</p>
+      
+      <!-- ROUND 3 -->
+      <p id="instr-5" class="instruction-step" style="display: none;"><b>ROUND 3: THE REVELATION</b><br>Form a <b>tight fist</b> to witness the final battle and see who emerges as the High Fairy!</p>
     </div>
   </header>
   
   <!-- Anchor the controls explicitly above the canvas so it never requires scrolling -->
-  <div id="controls-container" style="display: flex; flex-direction: column; align-items: center; width: 100%; margin-bottom: 20px;"></div>
+  <div id="controls-container" style="display: flex; flex-direction: column; align-items: center; width: 100%; margin-bottom: 20px; position: relative; z-index: 100;"></div>
   
-  <div id="canvas-container">
-    <div id="p5-container"></div>
+  <!-- We use opacity instead of display:none to prevent p5 layout collapse on load -->
+  <div id="mirrors-gallery" style="opacity: 0; pointer-events: none; height: 0; overflow: hidden; transition: opacity 1s ease;">
+    <!-- Our Local Display Engine -->
+    <div id="local-mirror-container" class="mirror-frame">
+      <div id="p5-container"></div>
+    </div>
+    <!-- WebRTC will dynamically inject new remote video streamers identically beside this one! -->
   </div>
   
   <script src="sketch.js"></script>
