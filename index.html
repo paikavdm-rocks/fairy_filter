@@ -12,7 +12,7 @@
     body {
       margin: 0;
       padding: 0;
-      background: radial-gradient(circle at center, #2a0845 0%, #000000 100%);
+      background: #0d1b13; /* Deep Mysterious Forest */
       color: #fff;
       display: flex;
       flex-direction: column;
@@ -78,9 +78,10 @@
   <header>
     <h1>The Magic Mirror</h1>
     <div class="instructions">
-      <p style="text-align: center; font-weight: bold; font-size: 1.2rem; margin-bottom: 10px;">✨ How to play ✨</p>
-      <p><b>1. Create:</b> Type a magical item below and cast the spell to conjure your item into reality.</p>
-      <p><b>2. Awaken:</b> Rapidly shake your newly created magic object back and forth to reveal your Fairy form!</p>
+      <p id="instr-0" style="text-align: center; font-weight: bold; font-size: 1.2rem; margin-bottom: 10px;">✨ How to play ✨</p>
+      <p id="instr-1"><b>1. Create:</b> Type a magical item below and cast the spell to conjure your item into reality.</p>
+      <p id="instr-2" style="display: none;"><b>2. The Aura:</b> Rapidly shake your <b>open hand</b> back and forth to reveal your glowing Fairy aura!</p>
+      <p id="instr-3" style="display: none;"><b>3. The Grand Finale:</b> Close your hand into a <b>tight fist</b> to cast the ultimate spell and permanently transform into a majestic Fairy!</p>
     </div>
   </header>
   

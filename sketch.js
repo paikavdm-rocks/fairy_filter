@@ -14,6 +14,9 @@ let poses = [];
 let fairyFilterActive = false;
 let prevHandX = null;
 let handVelocity = 0;
+let fullFairyImage = null; // State for the final masterpiece
+let isTransformingSelf = false;
+let currentStep = 1; // 1: Create, 2: Aura, 3: Finale
 
 // Models will be loaded asynchronously in setup()
 
@@ -24,6 +27,8 @@ let wingColor;
 // State of the current spell
 let currentObjectMask = null; // AI result for object
 let currentObjectTransformed = null; // AI result for object style
+let bgImage; // The static forest image
+let fireflies = [];
 
 function setup() {
   // Enlarge for dramatic flair
@@ -98,25 +103,131 @@ function setup() {
 
   // Create real-time fairy effect colors
   wingColor = color(200, 100, 255, 120); // Pink/Purple glow
+
+  // Load the background image
+  bgImage = loadImage('fairy_bg.png');
+
+  // Initialize fireflies
+  for (let i = 0; i < 25; i++) {
+    fireflies.push(new Firefly());
+  }
+}
+
+function drawMagicalBackground() {
+  if (bgImage) {
+    image(bgImage, 0, 0, width, height);
+  } else {
+    background(26, 42, 34); // Deep Emerald fallback
+  }
+
+  // Draw shifting misty shapes using noise
+  push();
+  noStroke();
+  for (let i = 0; i < 3; i++) {
+    fill(100, 200, 255, 30);
+    beginShape();
+    for (let x = 0; x <= width; x += 30) {
+      let yOffset = noise(x * 0.005, frameCount * 0.01 + i * 100) * 150;
+      vertex(x, height - yOffset - i * 50);
+    }
+    vertex(width, height);
+    vertex(0, height);
+    endShape(CLOSE);
+  }
+  pop();
+
+  // Update and draw fireflies
+  for (let f of fireflies) {
+    f.update();
+    f.show();
+  }
+}
+
+class Firefly {
+  constructor() {
+    this.x = random(width);
+    this.y = random(height);
+    this.angle = random(TWO_PI);
+    this.orbit = random(20, 50);
+    this.speed = random(0.01, 0.03);
+    this.size = random(3, 8);
+    this.color = color(random(150, 255), 255, random(150, 255), 180);
+  }
+  update() {
+    this.angle += this.speed;
+    this.x += cos(this.angle) * 0.5;
+    this.y += sin(this.angle * 0.5) * 0.5;
+    
+    // Wrap around
+    if (this.x < 0) this.x = width;
+    if (this.x > width) this.x = 0;
+    if (this.y < 0) this.y = height;
+    if (this.y > height) this.y = 0;
+  }
+  show() {
+    push();
+    let pulse = 150 + sin(frameCount * 0.1 + this.angle) * 100;
+    noStroke();
+    fill(red(this.color), green(this.color), blue(this.color), pulse);
+    drawingContext.shadowBlur = pulse / 10;
+    drawingContext.shadowColor = this.color;
+    ellipse(this.x, this.y, this.size);
+    pop();
+  }
 }
 
 function draw() {
-  background(0);
+  drawMagicalBackground();
 
   // 1. We always show the live feed, but with a fairy transformation
+  if (fullFairyImage) {
+    image(fullFairyImage, 0, 0, width, height);
+
+    // Magic Frame
+    noFill();
+    strokeWeight(20);
+    stroke(wingColor);
+    rect(0, 0, width, height);
+
+    // Ambient falling particles over the static image
+    for (let i = particles.length - 1; i >= 0; i--) {
+      particles[i].y += 1; // gently fall
+      particles[i].x += random(-1, 1);
+      particles[i].update();
+      particles[i].show();
+      if (particles[i].finished()) particles.splice(i, 1);
+    }
+    if (frameCount % 10 === 0) {
+      let p = new Particle(random(width), random(height));
+      p.color = color(255, 255, 200);
+      particles.push(p);
+    }
+    return; // Stop the regular video logic
+  }
+
   push();
   translate(width, 0); // Flipped view
   scale(-1, 1);
   
-  // Hand Shake velocity logic
+  // Hand Logic (Shake + Fist)
   if (hands.length > 0) {
-    // Only check shake if object has already been transformed
-    let wrist = hands[0].wrist || hands[0].keypoints[0];
-    if (prevHandX !== null && currentObjectTransformed) {
+    let hand = hands[0];
+    let wrist = hand.wrist || hand.keypoints[0];
+    let fist = isFist(hand);
+
+    if (prevHandX !== null && currentObjectTransformed && !fullFairyImage && !isTransformingSelf) {
       let speed = abs(wrist.x - prevHandX);
-      handVelocity = lerp(handVelocity, speed, 0.4); // Reacts faster
-      if (handVelocity > 8) { // Much easier shake threshold
+      handVelocity = lerp(handVelocity, speed, 0.4); 
+
+      // SHAKE to activate filter
+      if (!fist && handVelocity > 8 && currentStep === 2) {
         fairyFilterActive = true;
+        updateStep(3);
+      }
+
+      // FIST to trigger full AI transformation
+      if (fist && fairyFilterActive) {
+        castSelfSpell();
       }
     }
     prevHandX = wrist.x;
@@ -164,6 +275,20 @@ function draw() {
   if (isCasting) {
     fill(255, 255, 255, 200);
     rect(0, 0, width, height);
+  }
+
+  // Self-Transformation Overlay
+  if (isTransformingSelf) {
+    fill(255, 255, 255, map(sin(frameCount * 0.1), -1, 1, 100, 200));
+    rect(0, 0, width, height);
+    
+    push();
+    fill(255, 0, 255);
+    textAlign(CENTER, CENTER);
+    textFont('Cinzel Decorative');
+    textSize(30);
+    text("🌟 AWAKENING FAIRY FORM 🌟", width / 2, height / 2);
+    pop();
   }
 }
 
@@ -460,7 +585,8 @@ async function castRegionalSpell(objectPrompt) {
       loadImage(result.output, (incomingImage) => {
         currentObjectTransformed = incomingImage; // The whole transformed image
         isCasting = false;
-        feedback.html("Spell successful! Look at your new magical item!");
+        feedback.html("Spell successful! Shaking your hand will activate your aura, then close your hand to transform!");
+        updateStep(2);
         for(let i=0; i<60; i++) particles.push(new Particle(random(width), random(height)));
       });
     }
@@ -468,6 +594,109 @@ async function castRegionalSpell(objectPrompt) {
     isCasting = false;
     feedback.html("The transformation spell failed! Make sure you are holding the object clearly!");
   }
+}
+
+async function castSelfSpell() {
+  if (isTransformingSelf) return;
+  isTransformingSelf = true;
+  feedback.html("Fairy Awakening... Please hold still and wait for the magic to finish!");
+
+  // Capture the full composite
+  let offscreen = createGraphics(width, height);
+  
+  // 1. Draw video flipped
+  offscreen.push();
+  offscreen.translate(width, 0);
+  offscreen.scale(-1, 1);
+  offscreen.image(video, 0, 0, width, height);
+  offscreen.pop();
+
+  // 2. Composite the Wand over the hand!
+  if (currentObjectTransformed && hands.length > 0) {
+    let targetX = width / 2;
+    let targetY = height / 2;
+    let hand = hands[0];
+    let wrist = hand.wrist || hand.keypoints[0];
+    targetX = width - wrist.x;
+    targetY = wrist.y;
+    
+    let objSize = width * 0.35;
+    offscreen.blendMode(SCREEN);
+    offscreen.image(currentObjectTransformed, targetX - objSize / 2, targetY - objSize / 2, objSize, objSize);
+    offscreen.blendMode(BLEND);
+  }
+
+  let imgBase64 = offscreen.elt.toDataURL();
+
+  let fairyAesthetic = "ethereal lighting, cinematic, glittery fairy kingdom style, incredibly beautiful fairy magic.";
+  let prompt = "High quality masterpiece photo of an ethereal human transformed into a gorgeous magical fairy inside a glowing fairy forest. Holding a glowing magical item. " + fairyAesthetic;
+
+  let postData = {
+    model: "google/nano-banana",
+    input: {
+      prompt: prompt,
+      image_input: [imgBase64],
+    },
+  };
+
+  try {
+    const response = await fetch(replicateProxy, {
+      headers: { "Content-Type": `application/json` },
+      method: "POST",
+      body: JSON.stringify(postData),
+    });
+    const result = await response.json();
+
+    if (result.output) {
+      loadImage(result.output, (incomingImage) => {
+        fullFairyImage = incomingImage;
+        isTransformingSelf = false;
+        feedback.html("You have become a True Fairy!");
+        
+        // Hide instructions for the reveal
+        let instr = document.querySelector('.instructions');
+        if (instr) instr.style.display = 'none';
+
+        for (let i = 0; i < 200; i++) particles.push(new Particle(width / 2, height / 2));
+      });
+    }
+  } catch (error) {
+    isTransformingSelf = false;
+    fairyFilterActive = false; 
+    feedback.html("The awakening failed! Try shaking your hand and closing your fist again.");
+  }
+}
+
+// Heuristic to detect a closed fist
+function isFist(hand) {
+  let foldedFingers = 0;
+  let wrist = hand.keypoints[0];
+  let fingers = [
+    { tip: 8, mcp: 5 },   // Index
+    { tip: 12, mcp: 9 },  // Middle
+    { tip: 16, mcp: 13 }, // Ring
+    { tip: 20, mcp: 17 }  // Pinky
+  ];
+  for (let f of fingers) {
+    let tip = hand.keypoints[f.tip];
+    let mcp = hand.keypoints[f.mcp];
+    let dTip = dist(wrist.x, wrist.y, tip.x, tip.y);
+    let dMcp = dist(wrist.x, wrist.y, mcp.x, mcp.y);
+    if (dTip < dMcp * 1.5) foldedFingers++;
+  }
+  return foldedFingers >= 3;
+}
+
+function updateStep(step) {
+  currentStep = step;
+  // Hide all steps
+  for (let i = 1; i <= 3; i++) {
+    let el = document.getElementById('instr-' + i);
+    if (el) el.style.display = 'none';
+  }
+  // Show the current one
+  let currentEl = document.getElementById('instr-' + step);
+  if (currentEl) currentEl.style.display = 'block';
 }
 
 class Particle {
