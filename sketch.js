@@ -887,8 +887,12 @@ function handleSpiritOrbs() {
   }
 }
 
+let lastIndexPos = null;
+
 function getIndexFingerPosition() {
-  if (!Array.isArray(hands) || hands.length === 0 || !hands[0]) return null;
+  if (!Array.isArray(hands) || hands.length === 0 || !hands[0]) {
+    return lastIndexPos; // Stick to last known
+  }
   let hand = hands[0];
   let tipRaw = null;
   if (hand.annotations && hand.annotations.indexFinger) {
@@ -898,14 +902,18 @@ function getIndexFingerPosition() {
   } else if (hand.keypoints && hand.keypoints.length > 8) {
     tipRaw = hand.keypoints[8];
   }
-  if (!tipRaw) return null;
+  
+  if (!tipRaw) return lastIndexPos;
+  
   let rawX = Array.isArray(tipRaw) ? tipRaw[0] : tipRaw.x;
   let rawY = Array.isArray(tipRaw) ? tipRaw[1] : tipRaw.y;
-  if (rawX === undefined || rawY === undefined) return null;
-  return {
+  if (rawX === undefined || rawY === undefined) return lastIndexPos;
+  
+  lastIndexPos = {
     x: width - map(rawX, 0, vidW(), 0, width),
     y: map(rawY, 0, vidH(), 0, height)
   };
+  return lastIndexPos;
 }
 
 function totalCollectedSpells() {
