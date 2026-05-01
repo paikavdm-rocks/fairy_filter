@@ -1244,8 +1244,8 @@ function getObjectPosition() {
       if (mcpRaw) {
         let mx = map(Array.isArray(mcpRaw) ? mcpRaw[0] : mcpRaw.x, 0, vidW(), 0, width);
         let my = map(Array.isArray(mcpRaw) ? mcpRaw[1] : mcpRaw.y, 0, vidH(), 0, height);
-        tx = (width - wx + width - mx) / 2;
-        ty = (wy + my) / 2;
+        tx = width - mx;
+        ty = my;
       }
 
       if (frameCount !== wandSmoothFrame) {
