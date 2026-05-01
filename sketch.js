@@ -271,10 +271,12 @@ function setup() {
   nameContainer.style('gap', '10px');
   nameContainer.parent(inputRow);
 
-  let nameLabel = createSpan("Your Fairy Name:");
-  nameLabel.style('color', '#ffbaff');
-  nameLabel.style('font-family', 'Caveat');
+  let nameLabel = createSpan("🧚 Your Fairy Name:");
+  nameLabel.style('color', '#ffccff');
+  nameLabel.style('font-family', 'Quicksand');
   nameLabel.style('font-size', '1.4rem');
+  nameLabel.style('font-weight', 'bold');
+  nameLabel.style('text-shadow', '0 0 10px rgba(255, 121, 198, 0.5)');
   nameLabel.parent(nameContainer);
 
   nameInput = createInput(myPlayerName);
@@ -514,17 +516,22 @@ function draw() {
   } else {
     // Step 1: Branding/Background only
     push();
-    fill(10, 5, 25);
-    rect(0, 0, width, height);
+    // High transparency to show the beautiful background image
+    background(0, 0, 0, 100); 
     textAlign(CENTER, CENTER);
     textFont('Cinzel Decorative');
-    textSize(28);
-    fill(255, 121, 198);
+    textSize(35);
+    fill(255, 255, 255);
+    drawingContext.shadowBlur = 20;
+    drawingContext.shadowColor = '#ff79c6';
     text("FAIRYTOPIA BATTLE", width/2, height/2 - 20);
+    
+    drawingContext.shadowBlur = 10;
+    drawingContext.shadowColor = '#8be9fd';
     textFont('Quicksand');
-    textSize(16);
+    textSize(18);
     fill(200, 200, 255);
-    text("PLEASE ENTER YOUR NAME BELOW TO BEGIN", width/2, height/2 + 30);
+    text("ENTER YOUR NAME ABOVE TO AWAKEN YOUR POWER", width/2, height/2 + 40);
     pop();
   }
 

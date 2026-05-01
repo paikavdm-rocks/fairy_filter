@@ -30,7 +30,8 @@
 
         body {
             margin: 0; padding: 0;
-            background: radial-gradient(circle at center, #1a0a2e 0%, #050208 100%);
+            background: url('fairy_bg.png') no-repeat center center fixed;
+            background-size: cover;
             color: white; font-family: 'Quicksand', sans-serif;
             display: flex; flex-direction: column; align-items: center; min-height: 100vh;
         }
@@ -124,9 +125,9 @@
         </div>
     </div>
 
-    <h1>Fairytopia Battle</h1>
+    <h1 style="font-size: 3.5rem; margin-bottom: 5px; background: linear-gradient(to right, #ff79c6, #8be9fd); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; text-shadow: none;">Fairytopia Battle</h1>
     
-    <div class="instructions">
+    <div class="instructions" style="background: rgba(40, 10, 60, 0.85); border: 2px solid var(--accent); padding: 20px; border-radius: 25px;">
         <p id="instr-1" class="instruction-step fly-in">✨ Step 1: Set your Fairy Name to enter the arena.</p>
         <p id="instr-2" class="instruction-step" style="display: none;">✨ Step 2: Conjure your magical item and turn it into your wand.</p>
         <p id="instr-3" class="instruction-step" style="display: none;">✨ Step 3: Use your index finger to collect 3 elemental spell orbs from the sky!</p>
@@ -134,8 +135,9 @@
         <p id="instr-5" class="instruction-step" style="display: none;">✨ FINAL STEP: Close your hand into a tight fist to unleash your ultimate Fairy power!</p>
     </div>
 
-    <div id="p5-container"></div>
+    <!-- Move controls above video -->
     <div id="controls-container"></div>
+    <div id="p5-container"></div>
 
     <div id="mirrors-gallery">
         <!-- Remote players appear here -->
