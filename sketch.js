@@ -118,6 +118,8 @@ function initFirebaseListeners() {
       document.getElementById('login-overlay').style.display = 'none';
       myPlayerID = user.uid;
       myPlayerName = user.email ? user.email.split('@')[0] : "Fairy"; 
+      showMagicalPopup("✨ Welcome to the Battlefield! Type in your name below to awaken your power.", 5000);
+      
       if (nameInput) nameInput.value(myPlayerName);
       
       myFairyColor = hashStringToColor(myPlayerID);
@@ -440,8 +442,6 @@ function setup() {
 
   // Create default fairy effect color
   myFairyColor = color(255, 121, 198); 
-  
-  showMagicalPopup("✨ Welcome to Fairytopia Battlefield! Type in your name to enter the arena.", 5000);
 }
 
 function hashStringToColor(str) {
