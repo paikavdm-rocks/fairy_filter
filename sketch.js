@@ -57,6 +57,21 @@ let isMegaSpell = false;
 let currentKingdom = 'Fairytopia';
 let kingdomColor = '#ff79c6'; // Magenta theme
 
+let isCountdownStarted = false;
+let isGameStarted = false;
+
+function showMagicalPopup(msg, duration = 3000) {
+  let p = document.getElementById('magical-popup');
+  let t = document.getElementById('popup-text');
+  if (p && t) {
+    t.innerText = msg;
+    p.style.display = 'block';
+    if (duration > 0) {
+      setTimeout(() => { p.style.display = 'none'; }, duration);
+    }
+  }
+}
+
 function initFirebaseListeners() {
   // Cloud event listener for remote players
   db.ref('players').on('value', (snapshot) => {
@@ -310,6 +325,7 @@ function setup() {
     if (currentStep === 1) {
       nextStep(2);
       nameBtn.hide();
+      showMagicalPopup("✨ Conjure your magical object to act as your wand!", 6000);
       spellContainer.style('display', 'flex');
       
       // Reveal the gallery
@@ -424,6 +440,8 @@ function setup() {
 
   // Create default fairy effect color
   myFairyColor = color(255, 121, 198); 
+  
+  showMagicalPopup("✨ Welcome to Fairytopia Battlefield! Type in your name to enter the arena.", 5000);
 }
 
 function hashStringToColor(str) {
@@ -773,10 +791,9 @@ async function castRegionalSpell(objectPrompt) {
         isCasting = false;
         feedback.html("Spell successful! Look at your new magical item!");
         
-        // Move to Step 4 (Round 1: Gathering)!
-        if (currentStep === 2) {
-          nextStep(3);
-        }
+        // Notify others we are ready
+        if (myPlayerID) db.ref('players/' + myPlayerID + '/wandURL').set(result.output);
+        showMagicalPopup("✨ Wand Ready! Waiting for other fairies...", 0);
 
         for (let i = 0; i < 60; i++) particles.push(new Particle(random(width), random(height)));
       });
@@ -823,12 +840,54 @@ function setupCombatUI() {
 }
 
 function updateInstructionSteps() {
+  if (currentStep === 1) return; // Wait for name
+
+  // Check if everyone has a wand and we're ready to start
+  if (currentStep === 2 && currentObjectTransformed && !isCountdownStarted) {
+    let everyoneReady = true;
+    for (let pID in remotePlayers) {
+        if (!remotePlayers[pID].wandURL) {
+            everyoneReady = false;
+            break;
+        }
+    }
+    
+    if (everyoneReady) {
+      startGlobalCountdown();
+    }
+  }
+
   if (currentStep === 3 && totalCollectedSpells() >= 3) {
     nextStep(4);
   }
 }
 
+function startGlobalCountdown() {
+  isCountdownStarted = true;
+  document.getElementById('magical-popup').style.display = 'none';
+  let overlay = document.getElementById('countdown-overlay');
+  overlay.style.display = 'flex';
+  
+  let count = 3;
+  let interval = setInterval(() => {
+    overlay.innerText = count;
+    overlay.classList.remove('count-pulse');
+    void overlay.offsetWidth; // Trigger reflow
+    overlay.classList.add('count-pulse');
+    
+    if (count === 0) {
+      clearInterval(interval);
+      overlay.style.display = 'none';
+      isGameStarted = true;
+      nextStep(3);
+      showMagicalPopup("✨ BATTLE START!", 2000);
+    }
+    count--;
+  }, 1000);
+}
+
 function handleSpiritOrbs() {
+  if (!isGameStarted) return; // Orbs only after countdown
   let spellTypes = Object.keys(elementalSpells);
 
   if (frameCount % 20 === 0 && spiritOrbs.length < 12) {
