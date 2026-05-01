@@ -4,197 +4,110 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fairytopia Battle Game | The Final Duel</title>
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;700&family=Caveat:wght@600&display=swap" rel="stylesheet">
+    
+    <!-- P5.js & ML5.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.js"></script>
     <script src="https://unpkg.com/ml5@0.6.0/dist/ml5.min.js"></script>
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+
+    <!-- Firebase (Compat v8) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Quicksand:wght@400;700&family=Caveat:wght@600&display=swap" rel="stylesheet">
+
     <style>
         :root {
             --primary: #50fa7b;
             --secondary: #f1fa8c;
             --accent: #ff79c6;
-            --background: #1a2a22;
-            --glass: rgba(0, 0, 0, 0.7);
+            --background: #0a050f;
+            --glass: rgba(26, 8, 48, 0.7);
             --border: rgba(255, 255, 255, 0.1);
         }
+
         body {
             margin: 0; padding: 0;
-            background: radial-gradient(circle at center, var(--background) 0%, #000 100%);
-            color: white; font-family: 'Inter', sans-serif;
-            overflow-x: hidden;
+            background-color: var(--background);
+            background-image: url('fairy_bg.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            color: white; font-family: 'Quicksand', sans-serif;
+            display: flex; flex-direction: column; align-items: center; min-height: 100vh;
         }
-        header {
-            padding: 30px 40px; border-bottom: 1px solid var(--border);
-            display: flex; justify-content: space-between; align-items: center;
-            background: rgba(0,0,0,0.3); backdrop-filter: blur(10px);
-        }
-        h1 { font-family: 'Playfair Display', serif; font-size: 2.2rem; margin: 0; letter-spacing: 2px; text-transform: uppercase; color: var(--primary); }
-        
-        #game-area { display: flex; gap: 30px; max-width: 1400px; margin: 0 auto; }
-        #canvas-container { flex: 1; }
-        .sidebar { width: 380px; display: flex; flex-direction: column; gap: 20px; }
-        .panel { padding: 25px; border-radius: 20px; border: 1px solid var(--border); background: var(--glass); }
 
-        .hidden { display: none !important; }
-        .overlay {
+        #login-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9); backdrop-filter: blur(20px);
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(20px);
             display: flex; align-items: center; justify-content: center; z-index: 1000;
         }
+
         .auth-box {
-            background: #111; padding: 50px; border-radius: 30px; border: 2px solid var(--primary);
-            text-align: center; max-width: 500px; width: 90%; box-shadow: 0 0 50px rgba(80, 250, 123, 0.2);
+            background: #111; padding: 40px; border-radius: 30px; border: 2px solid var(--accent);
+            text-align: center; max-width: 400px; width: 90%; box-shadow: 0 0 50px rgba(255, 121, 198, 0.2);
         }
+
         .auth-box input {
-            width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px;
-            background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: white;
+            width: 100%; padding: 12px; margin: 10px 0; border-radius: 12px;
+            background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: white; box-sizing: border-box;
         }
+
         .btn-primary {
-            padding: 15px 30px; border-radius: 12px; background: var(--primary);
-            color: black; font-weight: bold; cursor: pointer; border: none; font-size: 1rem;
+            padding: 12px 24px; border-radius: 12px; background: var(--accent);
+            color: white; font-weight: bold; cursor: pointer; border: none; font-size: 1rem; width: 100%;
+            margin-top: 10px;
         }
-        .realm-btn { transition: transform 0.3s ease; }
-        .realm-btn:hover { transform: scale(1.1); }
-        
-        .item-picker { display: flex; flex-wrap: nowrap; gap: 7px; margin-top: 15px; }
-        .item-btn {
-            background: rgba(255,255,255,0.1); border: 2px solid var(--border);
-            width: 45px; height: 45px; border-radius: 12px; cursor: pointer;
-            font-size: 1.2rem; transition: all 0.2s; padding: 0;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .item-btn:hover { background: var(--primary); color: black; transform: translateY(-3px); }
 
-        #scene-gallery {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; margin-top: 40px;
+        #p5-container {
+            margin-top: 30px; border: 10px solid var(--accent); border-radius: 20px;
+            box-shadow: 0 0 40px rgba(255, 121, 198, 0.3); overflow: hidden; background: black;
         }
-        .scene-card {
-            background: var(--glass); border: 1px solid var(--border); border-bottom: 4px solid var(--primary);
-            padding: 20px; border-radius: 20px; cursor: pointer; transition: all 0.3s;
-        }
-        .scene-card:hover { transform: translateY(-10px); box-shadow: 0 15px 30px rgba(0,0,0,0.5); }
-        .scene-card h3 { font-family: 'Playfair Display'; margin-top: 0; color: var(--secondary); }
 
-        @keyframes spin { from {transform: rotate(0deg);} to {transform: rotate(360deg);} }
-        @keyframes spellBurst {
-            0% { transform: translate(-50%, -50%) scale(0.25); opacity: 0; }
-            18% { opacity: 1; }
-            100% { transform: translate(-50%, -50%) scale(1.8); opacity: 0; }
+        #controls-container {
+            width: 100%; max-width: 800px; margin-top: 20px; display: flex; flex-direction: column; align-items: center;
         }
+
+        #mirrors-gallery {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px; width: 100%; max-width: 1200px; padding: 40px;
+            opacity: 0; transition: opacity 1s; height: 0; overflow: hidden;
+        }
+
+        .mirror-frame {
+            background: var(--glass); border: 2px solid var(--accent); padding: 10px; border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .fly-in { animation: flyIn 0.8s ease-out forwards; }
+        @keyframes flyIn { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        h1 { font-family: 'Cinzel Decorative', cursive; margin-top: 20px; letter-spacing: 4px; text-shadow: 0 0 20px var(--accent); }
     </style>
 </head>
 <body>
 
-    <div id="auth-overlay" class="overlay">
+    <div id="login-overlay">
         <div class="auth-box">
-            <!-- Grand top title -->
-            <p style="font-family: 'Playfair Display'; font-size: 0.85rem; letter-spacing: 6px; text-transform: uppercase; color: var(--secondary); opacity: 0.8; margin: 0 0 10px;">✨ Welcome to ✨</p>
-            <h1 style="font-family: 'Playfair Display'; font-size: 2.2rem; line-height: 1.2; margin: 0 0 8px; background: linear-gradient(135deg, var(--primary), var(--secondary), var(--accent)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">FAIRYTOPIA<br>BATTLE GAME</h1>
-            <p style="opacity: 0.5; font-size: 0.8rem; margin: 0 0 30px; letter-spacing: 1px;">Sign in to enter the magical arena</p>
-
-
-
-            <input type="email" id="email" placeholder="Magical Email">
-            <input type="password" id="password" placeholder="Secret Password">
-            <div style="margin-top: 20px; display: flex; gap: 15px;">
-                <button class="btn-primary" id="login-btn" style="flex: 1;">ENTER REALM</button>
-                <button class="btn-primary" id="signup-btn" style="flex: 1; background: transparent; border: 1px solid var(--primary); color: var(--primary);">NEW SPIRIT</button>
-            </div>
+            <h1>Fairytopia</h1>
+            <p style="opacity: 0.6; margin-bottom: 20px;">The Battle Game</p>
+            <input type="email" id="auth-email" placeholder="Magical Email">
+            <input type="password" id="auth-password" placeholder="Secret Password">
+            <button class="btn-primary" onclick="window.loginWithEmail()">ENTER ARENA</button>
+            <p style="font-size: 0.8rem; margin-top: 15px; opacity: 0.5;">Enter email/password. New spirits will be registered automatically.</p>
         </div>
     </div>
 
-    <header>
-        <div>
-            <h1 id="main-title">Fairytopia Battle</h1>
-            <p id="sub-title" style="margin: 5px 0 0; opacity: 0.7; font-size: 0.9rem;">The Ultimate Duel of Spirits</p>
-        </div>
-        <div id="user-info" class="hidden" style="display: flex; align-items: center; gap: 20px;">
-            <span id="user-display" style="font-weight: bold; color: var(--primary);">Noble Spirit</span>
-            <button onclick="window.logout()" style="background: none; border: 1px solid #ff5555; color: #ff5555; padding: 6px 15px; border-radius: 8px; cursor: pointer;">EXIT REALM</button>
-        </div>
-    </header>
+    <h1>Fairytopia Battle</h1>
+    <div id="p5-container"></div>
+    <div id="controls-container"></div>
 
-    <main style="padding: 40px;">
-        <div id="game-area">
-            <div id="canvas-container" style="border: 4px solid var(--primary); border-radius: 24px; overflow: hidden; height: 550px; box-shadow: 0 0 50px rgba(0,0,0,0.5);">
-                <!-- Canvas -->
-            </div>
+    <div id="mirrors-gallery">
+        <!-- Remote players appear here -->
+    </div>
 
-            <div class="sidebar">
-                <div class="panel">
-                    <h2 style="font-family: 'Playfair Display'; margin-top: 0; font-size: 1.5rem;">GRAND TOOLBOX</h2>
-                    
-                    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">
-                        <h3 style="font-size: 1rem; color: var(--accent); margin-bottom: 10px;">📸 Selfie Selfie Sticker</h3>
-                        <button id="selfie-btn" style="width: 100%; padding: 15px; border-radius: 12px; background: var(--accent); color: white; border: none; cursor: pointer; font-weight: bold; box-shadow: 0 5px 15px rgba(255, 121, 198, 0.3);">
-                            TURN ON CAMERA
-                        </button>
-                        <div id="webcam-preview" class="hidden" style="margin-top: 15px; border-radius: 12px; overflow: hidden; border: 2px solid var(--accent);"></div>
-                    </div>
-
-                    <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid var(--border);">
-                        <h3 style="font-size: 1rem; color: var(--secondary); margin-bottom: 10px;">✨ Magic Elements</h3>
-                        <div class="item-picker" id="item-picker">
-                            <button class="item-btn" data-type="fairy" title="Fairy">🧚</button>
-                            <button class="item-btn" data-type="mushroom" title="Mushroom">🍄</button>
-                            <button class="item-btn" data-type="crystal" title="Crystal">💎</button>
-                            <button class="item-btn" data-type="flower" title="Flower">🌸</button>
-                            <button class="item-btn" data-type="star" title="Star">⭐</button>
-                            <button class="item-btn" data-type="eraser" title="Eraser" style="border-color: #ff5555; color: #ff5555;">🗑️</button>
-                        </div>
-                    </div>
-
-                    <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid var(--border);">
-                        <h3 style="font-size: 1rem; color: var(--secondary); margin-bottom: 5px;">🪄 Fairy Dust Wand</h3>
-                        <p style="font-size: 0.7rem; color: #aaa; margin-bottom: 10px;">Point your index finger at water, fire, or air orbs to collect them as spells.</p>
-                        <button id="fairy-dust-btn" style="width: 100%; padding: 14px; border-radius: 12px; background: linear-gradient(135deg, #bd93f9, #ff79c6); color: white; border: none; cursor: pointer; font-weight: bold; font-size: 0.9rem; box-shadow: 0 5px 15px rgba(189,147,249,0.3);">
-                            ACTIVATE SPELL ORBS ✨
-                        </button>
-                    </div>
-
-                    <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid var(--border);">
-                        <h3 style="font-size: 1rem; color: var(--primary); margin-bottom: 5px;">📜 Spell Inventory</h3>
-                        <p id="spell-help" style="font-size: 0.7rem; color: #aaa; margin-bottom: 10px;">Collect elemental orbs with your index finger, then select a spell and click a target box.</p>
-                        <div id="spell-inventory" style="display: flex; flex-wrap: wrap; gap: 8px; min-height: 48px; align-items: center;"></div>
-                    </div>
-
-                    <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid var(--border);">
-                        <h3 style="font-size: 1.1rem; color: var(--accent); margin-bottom: 5px;">🔮 Object Sticker Conjurer</h3>
-                        <p style="font-size: 0.75rem; opacity: 0.7; margin-bottom: 12px;">Type any magical object you can imagine, and the spirits will manifest it for you.</p>
-                        
-                        <div style="display: flex; gap: 10px; margin-bottom: 12px;">
-                            <input type="text" id="ai-prompt" placeholder="A dragon egg..." style="flex: 1; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: white; border-radius: 10px;">
-                            <button id="ai-btn" style="padding: 10px 20px; background: var(--accent); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: bold;">CONJURE</button>
-                        </div>
-
-                        <div id="ai-suggestions" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 15px;">
-                            <span class="suggestion-chip" style="font-size: 0.7rem; background: rgba(255,121,198,0.1); border: 1px solid var(--accent); padding: 4px 8px; border-radius: 20px; cursor: pointer; color: var(--accent);">Golden Harp</span>
-                            <span class="suggestion-chip" style="font-size: 0.7rem; background: rgba(255,121,198,0.1); border: 1px solid var(--accent); padding: 4px 8px; border-radius: 20px; cursor: pointer; color: var(--accent);">Phoenix Feather</span>
-                            <span class="suggestion-chip" style="font-size: 0.7rem; background: rgba(255,121,198,0.1); border: 1px solid var(--accent); padding: 4px 8px; border-radius: 20px; cursor: pointer; color: var(--accent);">Magic Potion</span>
-                        </div>
-                        
-                        <div id="ai-creations" style="display: flex; flex-wrap: wrap; gap: 8px; min-height: 40px; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 10px;"></div>
-                    </div>
-
-                    <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid var(--border);">
-                        <h3 style="font-size: 1rem; color: var(--primary); margin-bottom: 10px;">🌌 Spirit Bank</h3>
-                        <div id="shared-stickers" style="display: flex; flex-wrap: wrap; gap: 8px; max-height: 120px; overflow-y: auto;"></div>
-                    </div>
-
-                    <button id="save-btn" style="width: 100%; margin-top: 30px; padding: 18px; border-radius: 12px; background: var(--primary); color: black; font-weight: bold; border: none; cursor: pointer; font-size: 1.1rem; box-shadow: 0 0 20px rgba(80, 250, 123, 0.3);">POST TO THE EXHIBITION ✨</button>
-                </div>
-            </div>
-        </div>
-
-        <section style="margin-top: 100px;">
-            <h2 style="font-family: 'Playfair Display'; font-size: 3rem; text-align: center; color: var(--primary); letter-spacing: 5px;">THE GRAND EXHIBITION</h2>
-            <p style="text-align: center; opacity: 0.6; font-style: italic; margin-bottom: 50px;">A public archive of all spirits who have entered the realms.</p>
-            <div id="scene-gallery">
-                <!-- Scenes load here -->
-            </div>
-        </section>
-    </main>
-
-    <script type="module" src="app.js"></script>
+    <script src="sketch.js"></script>
 </body>
 </html>
