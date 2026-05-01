@@ -93,7 +93,9 @@
             transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         .spell-inventory-bar:hover { transform: translateX(-50%) scale(1.05); }
-        .spell-item { display: flex; align-items: center; gap: 12px; font-size: 1.5rem; font-weight: bold; color: white; }
+        .spell-item { display: flex; align-items: center; gap: 12px; font-size: 1.5rem; font-weight: bold; color: white; cursor: pointer; transition: all 0.2s; padding: 5px 10px; border-radius: 20px; }
+        .spell-item:hover { background: rgba(255, 255, 255, 0.1); }
+        .spell-item.selected { background: rgba(255, 255, 255, 0.2); box-shadow: inset 0 0 10px var(--accent); border: 1px solid var(--accent); }
         .spell-count { background: var(--accent); color: black; border-radius: 12px; padding: 2px 10px;
                        min-width: 20px; text-align: center; font-size: 1rem; font-weight: 900; box-shadow: 0 0 10px var(--accent); }
 
@@ -145,9 +147,9 @@
 
     <!-- Persistent Spell Inventory Bar -->
     <div id="spell-inventory-hud" class="spell-inventory-bar">
-        <div class="spell-item">💧 <span id="count-Water" class="spell-count">0</span></div>
-        <div class="spell-item">🔥 <span id="count-Fire" class="spell-count">0</span></div>
-        <div class="spell-item">🌬️ <span id="count-Air" class="spell-count">0</span></div>
+        <div id="item-Water" class="spell-item" onclick="window.selectSpell('Water')">💧 <span id="count-Water" class="spell-count">0</span></div>
+        <div id="item-Fire" class="spell-item" onclick="window.selectSpell('Fire')">🔥 <span id="count-Fire" class="spell-count">0</span></div>
+        <div id="item-Air" class="spell-item" onclick="window.selectSpell('Air')">🌬️ <span id="count-Air" class="spell-count">0</span></div>
     </div>
 
     <script src="sketch.js"></script>

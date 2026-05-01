@@ -927,14 +927,32 @@ function collectSpell(spellType) {
   mySpellChoice = spellType;
   if (myPlayerID) db.ref('players/' + myPlayerID + '/choice').set(mySpellChoice);
   renderSpellInventory();
-  if (spellStatusText) spellStatusText.html(`${elementalSpells[spellType].icon} ${spellType} spell collected. Click it, then click someone's mirror box.`);
+  if (spellStatusText) spellStatusText.html(`${elementalSpells[spellType].icon} ${spellType} spell collected. Select it below, then click someone's mirror box.`);
 }
 
+window.selectSpell = function(type) {
+  if (spellInventory[type] <= 0) {
+    if (spellStatusText) spellStatusText.html(`✨ You need more ${elementalSpells[type].icon} ${type} spirit to cast this!`);
+    return;
+  }
+  selectedSpell = type;
+  mySpellChoice = type;
+  if (myPlayerID) db.ref('players/' + myPlayerID + '/choice').set(mySpellChoice);
+  if (spellStatusText) spellStatusText.html(`✨ ${elementalSpells[type].icon} ${type} focus active! Click a target to cast.`);
+  renderSpellInventory();
+};
+
 function renderSpellInventory() {
-  // Update HTML overlay counts
+  // Update HTML overlay counts and selection state
   Object.keys(spellInventory).forEach(type => {
     let el = document.getElementById('count-' + type);
     if (el) el.innerText = spellInventory[type];
+    
+    let itemEl = document.getElementById('item-' + type);
+    if (itemEl) {
+      if (selectedSpell === type) itemEl.classList.add('selected');
+      else itemEl.classList.remove('selected');
+    }
   });
 
   if (!spellInventoryDiv) return;
