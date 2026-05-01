@@ -202,7 +202,7 @@ const WAND_TRACK_SMOOTH = 0.22;
 let bodyPose;
 let poses = [];
 
-let fairyFilterActive = false;
+let fairyFilterActive = true;
 let prevHandX = null;
 let handVelocity = 0;
 let fullFairyImage = null;
@@ -396,14 +396,22 @@ function setup() {
 
   let constraints = { audio: false, video: { facingMode: "user" } };
 
-  // Only handpose needed — no body tracking
+  // Hand and Body tracking
   video = createCapture(constraints, function () {
-    // Handpose legacy
+    // Handpose
     handPose = ml5.handpose(video, { flipHorizontal: false }, () => {
       console.log("Hand tracker ready");
     });
     handPose.on('predict', (results) => {
       hands = Array.isArray(results) && results.length > 0 ? results.slice(0, 1) : [];
+    });
+
+    // PoseNet for Wings/Crown/Ears
+    bodyPose = ml5.poseNet(video, () => {
+      console.log("Body tracker ready");
+    });
+    bodyPose.on('pose', (results) => {
+      poses = results;
     });
   });
 
@@ -463,49 +471,57 @@ function draw() {
     return; // Stop the regular video logic from running!
   }
 
-  // 1. We always show the live feed, but with a fairy transformation
-  push();
-  translate(width, 0); // Flipped view
-  scale(-1, 1);
+  // 1. Show live feed only after name is set (Step > 1)
+  if (currentStep > 1) {
+    push();
+    translate(width, 0); // Flipped view
+    scale(-1, 1);
 
-  // Hand Shake velocity and pose logic
-  if (Array.isArray(hands) && hands.length > 0 && hands[0]) {
-    let hand = hands[0];
-    let landmarks = hand.landmarks || hand.keypoints || (hand.annotations ? hand.annotations.palmBase : null);
-    
-    if (landmarks && landmarks.length > 0) {
-      let wristPoint = landmarks[0];
-      let wx = wristPoint.x !== undefined ? wristPoint.x : (Array.isArray(wristPoint) ? wristPoint[0] : null);
-      let wy = wristPoint.y !== undefined ? wristPoint.y : (Array.isArray(wristPoint) ? wristPoint[1] : null);
+    // Hand Shake velocity and pose logic
+    if (Array.isArray(hands) && hands.length > 0 && hands[0]) {
+      let hand = hands[0];
+      let landmarks = hand.landmarks || hand.keypoints || (hand.annotations ? hand.annotations.palmBase : null);
       
-      let fist = isFist(hand);
-
-      if (wx !== null && prevHandX !== null && currentObjectTransformed && !fullFairyImage && !isTransformingSelf) {
-        let speed = abs((width - wx) - prevHandX);
-        handVelocity = lerp(handVelocity, speed, 0.4);
-    
-        // Close your fist to toggle the magic ON
-        if (fist) {
-          fairyFilterActive = true;
-        }
+      if (landmarks && landmarks.length > 0) {
+        let wristPoint = landmarks[0];
+        let wx = wristPoint.x !== undefined ? wristPoint.x : (Array.isArray(wristPoint) ? wristPoint[0] : null);
+        let wy = wristPoint.y !== undefined ? wristPoint.y : (Array.isArray(wristPoint) ? wristPoint[1] : null);
         
-        // Shake your hand vigorously to turn it OFF
-        if (!fist && handVelocity > 20) {
-          fairyFilterActive = false;
-        }
+        let fist = isFist(hand);
 
-        if (fist && currentStep === 5) {
-          castBattleSpell();
+        if (wx !== null && prevHandX !== null && currentObjectTransformed && !fullFairyImage && !isTransformingSelf) {
+          let speed = abs((width - wx) - prevHandX);
+          handVelocity = lerp(handVelocity, speed, 0.4);
+      
+          if (fist) fairyFilterActive = true;
+          if (!fist && handVelocity > 20) fairyFilterActive = true;
+
+          if (fist && currentStep === 5) castBattleSpell();
         }
+        if (wx !== null) prevHandX = (width - wx);
       }
-      if (wx !== null) prevHandX = (width - wx);
     }
+
+    // Draw the live video feed
+    image(video, 0, 0, width, height);
+    
+    // Add Fairy Visuals (Wings, Crown, Ears)
+    if (fairyFilterActive) {
+      applyFairyGlow();
+    }
+    
+    pop(); // End flipped view
+  } else {
+    // Step 1: Branding/Background only
+    push();
+    fill(20, 10, 40);
+    rect(0, 0, width, height);
+    textAlign(CENTER);
+    textSize(24);
+    fill(255, 121, 198);
+    text("PLEASE SET YOUR NAME TO BEGIN 🧚", width/2, height/2);
+    pop();
   }
-
-  // Draw the live video feed (no color tint)
-  image(video, 0, 0, width, height);
-
-  pop(); // End flipped view
 
   // Elemental spell orbs during Gathering and Duel.
   if (currentStep >= 3 && currentStep <= 4) {
@@ -553,13 +569,104 @@ function draw() {
     fill(255, 0, 255);
     textAlign(CENTER, CENTER);
     textFont('Cinzel Decorative');
-    textSize(30);
-    text("🌟 AWAKENING FAIRY FORM 🌟", width / 2, height / 2);
     pop();
   }
 
   // HUD last so wand, particles, frame, and object layer don't paint over it
   drawPlayerHud();
+}
+
+/** FAIRY VISUALS **/
+
+function applyFairyGlow() {
+  if (poses.length > 0) {
+    let person = poses[0];
+    let pose = person.pose || person;
+
+    // Draw Wings of actual fairy color
+    let lShoulder = pose.leftShoulder || (pose.keypoints ? pose.keypoints.find(k => k.part === 'leftShoulder') : null);
+    let rShoulder = pose.rightShoulder || (pose.keypoints ? pose.keypoints.find(k => k.part === 'rightShoulder') : null);
+
+    if (lShoulder && lShoulder.score > 0.2) {
+      let sx = map(lShoulder.x, 0, vidW(), 0, width);
+      let sy = map(lShoulder.y, 0, vidH(), 0, height);
+      drawWing(sx, sy, 1);
+    }
+    if (rShoulder && rShoulder.score > 0.2) {
+      let sx = map(rShoulder.x, 0, vidW(), 0, width);
+      let sy = map(rShoulder.y, 0, vidH(), 0, height);
+      drawWing(sx, sy, -1);
+    }
+
+    // Nose for Crown/Ears
+    let nose = pose.nose || (pose.keypoints ? pose.keypoints.find(k => k.part === 'nose') : null);
+    let leftEar = pose.leftEar || (pose.keypoints ? pose.keypoints.find(k => k.part === 'leftEar') : null);
+    let rightEar = pose.rightEar || (pose.keypoints ? pose.keypoints.find(k => k.part === 'rightEar') : null);
+
+    if (nose && nose.score > 0.2) {
+      let nx = map(nose.x, 0, vidW(), 0, width);
+      let ny = map(nose.y, 0, vidH(), 0, height);
+      
+      if (leftEar && leftEar.score > 0.1) {
+          let ex = map(leftEar.x, 0, vidW(), 0, width);
+          let ey = map(leftEar.y, 0, vidH(), 0, height);
+          drawElfEar(ex, ey, 1);
+      }
+      if (rightEar && rightEar.score > 0.1) {
+          let ex = map(rightEar.x, 0, vidW(), 0, width);
+          let ey = map(rightEar.y, 0, vidH(), 0, height);
+          drawElfEar(ex, ey, -1);
+      }
+      drawCrown(nx, ny - 100);
+    }
+  }
+}
+
+function drawWing(x, y, dir) {
+  push();
+  translate(x, y);
+  rotate(dir * PI / 8 + sin(frameCount * 0.1) * 0.1);
+  noStroke();
+  
+  // Use current fairy color
+  let c = myFairyColor || color(255, 121, 198);
+  fill(red(c), green(c), blue(c), 150);
+  
+  // Simple elegant wings
+  ellipse(dir * 60, -60, 120, 250);
+  ellipse(dir * 50, 40, 80, 160);
+  
+  // Glow
+  blendMode(ADD);
+  fill(255, 255, 255, 50);
+  ellipse(dir * 60, -60, 40, 180);
+  pop();
+}
+
+function drawCrown(x, y) {
+  push();
+  translate(x, y);
+  noStroke();
+  fill(255, 215, 0, 220); // Gold
+  // Tiara
+  triangle(-15, 0, 15, 0, 0, -40);
+  triangle(-30, 0, -10, 0, -20, -25);
+  triangle(30, 0, 10, 0, 20, -25);
+  pop();
+}
+
+function drawElfEar(x, y, dir) {
+  push();
+  translate(x, y);
+  noStroke();
+  fill(255, 220, 220, 255);
+  beginShape();
+  vertex(dir * -5, 10);
+  vertex(dir * -10, -5);
+  vertex(dir * 40, -40); // Pointy
+  vertex(dir * 10, 0);
+  endShape(CLOSE);
+  pop();
 }
 
 // Legacy fairy glow removed for system simplification
@@ -1124,10 +1231,10 @@ function getObjectPosition() {
       let tx = width - wx;
       let ty = wy;
       let mcpRaw = null;
-      if (hand.annotations && hand.annotations.middleFinger) {
-        mcpRaw = hand.annotations.middleFinger[0];
-      } else if (hand.landmarks && hand.landmarks.length > 9) {
-        mcpRaw = hand.landmarks[9];
+      if (hand.annotations && hand.annotations.indexFinger) {
+        mcpRaw = hand.annotations.indexFinger[3]; // Index Tip
+      } else if (hand.landmarks && hand.landmarks.length > 8) {
+        mcpRaw = hand.landmarks[8]; // Index Tip
       }
       if (mcpRaw) {
         let mx = map(Array.isArray(mcpRaw) ? mcpRaw[0] : mcpRaw.x, 0, vidW(), 0, width);
