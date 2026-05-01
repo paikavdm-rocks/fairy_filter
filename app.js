@@ -98,10 +98,147 @@ let handCapture;
 let fairyDustMode = false;
 let fairyParticles = [];
 let currentHand = null;
+let elementOrbs = [];
+let spellBursts = [];
+let selectedSpell = null;
+const spellInventory = { water: 0, fire: 0, air: 0 };
+const elementSpells = {
+    water: { name: 'Water', icon: '💧', color: [80, 190, 255], glow: '#50c8ff' },
+    fire: { name: 'Fire', icon: '🔥', color: [255, 92, 45], glow: '#ff5c2d' },
+    air: { name: 'Air', icon: '🌬️', color: [210, 245, 255], glow: '#d2f5ff' }
+};
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 let unsubRealm = null;
 let syncingFromServer = false;
+
+function getIndexFingerPosition(p) {
+    if (!currentHand || !handCapture || !currentHand.landmarks || !currentHand.landmarks[8]) return null;
+    const tip = currentHand.landmarks[8];
+    return {
+        x: p.map(tip[0], 0, handCapture.width, p.width, 0),
+        y: p.map(tip[1], 0, handCapture.height, 0, p.height)
+    };
+}
+
+function addSpellToInventory(type) {
+    spellInventory[type] += 1;
+    selectedSpell = type;
+    renderSpellInventory();
+    const spell = elementSpells[type];
+    const help = getEl('spell-help');
+    if (help) help.innerText = `${spell.name} spell collected. Click it, then click a target box to cast.`;
+}
+
+function renderSpellInventory() {
+    const inventory = getEl('spell-inventory');
+    if (!inventory) return;
+    inventory.innerHTML = '';
+    Object.keys(elementSpells).forEach((type) => {
+        const spell = elementSpells[type];
+        const count = spellInventory[type];
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.dataset.spell = type;
+        btn.innerHTML = `<span style="font-size:1.25rem;">${spell.icon}</span><span>${spell.name}</span><strong>${count}</strong>`;
+        btn.disabled = count <= 0;
+        btn.style.cssText = [
+            'height:44px',
+            'min-width:92px',
+            'display:flex',
+            'align-items:center',
+            'justify-content:center',
+            'gap:6px',
+            'border-radius:10px',
+            `border:2px solid ${selectedSpell === type ? spell.glow : 'var(--border)'}`,
+            `background:${selectedSpell === type ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.08)'}`,
+            `color:${count > 0 ? 'white' : 'rgba(255,255,255,0.35)'}`,
+            'font-weight:bold',
+            'cursor:pointer',
+            `box-shadow:${selectedSpell === type ? `0 0 16px ${spell.glow}` : 'none'}`
+        ].join(';');
+        btn.onclick = () => {
+            if (spellInventory[type] <= 0) return;
+            selectedSpell = type;
+            const help = getEl('spell-help');
+            if (help) help.innerText = `${spell.name} spell selected. Click the canvas or a target box to cast it.`;
+            renderSpellInventory();
+        };
+        inventory.appendChild(btn);
+    });
+    if (!Object.values(spellInventory).some(Boolean)) {
+        const empty = document.createElement('span');
+        empty.innerText = 'No spells collected yet.';
+        empty.style.cssText = 'font-size:0.75rem; color:#aaa;';
+        inventory.appendChild(empty);
+    }
+}
+
+function consumeSelectedSpell() {
+    if (!selectedSpell || spellInventory[selectedSpell] <= 0) return null;
+    const castType = selectedSpell;
+    spellInventory[castType] -= 1;
+    if (spellInventory[castType] <= 0) selectedSpell = null;
+    renderSpellInventory();
+    return castType;
+}
+
+function castSpellAtCanvas(p, x, y) {
+    const castType = consumeSelectedSpell();
+    if (!castType) return false;
+    const spell = elementSpells[castType];
+    spellBursts.push({ x, y, type: castType, life: 1 });
+    const help = getEl('spell-help');
+    if (help) help.innerText = `${spell.name} spell cast.`;
+    for (let i = 0; i < 28; i++) {
+        fairyParticles.push({
+            x,
+            y,
+            vx: p.random(-3.5, 3.5),
+            vy: p.random(-3.5, 3.5),
+            r: spell.color[0],
+            g: spell.color[1],
+            b: spell.color[2],
+            size: p.random(8, 22),
+            life: 1
+        });
+    }
+    return true;
+}
+
+function castSpellAtElement(target) {
+    const castType = consumeSelectedSpell();
+    if (!castType || !target) return false;
+    const spell = elementSpells[castType];
+    const box = target.getBoundingClientRect();
+    const burst = document.createElement('div');
+    burst.innerText = spell.icon;
+    burst.style.cssText = [
+        'position:fixed',
+        `left:${box.left + box.width / 2}px`,
+        `top:${box.top + box.height / 2}px`,
+        'width:120px',
+        'height:120px',
+        'display:flex',
+        'align-items:center',
+        'justify-content:center',
+        'font-size:3.5rem',
+        'border-radius:50%',
+        `border:3px solid ${spell.glow}`,
+        `box-shadow:0 0 35px ${spell.glow}`,
+        'background:rgba(0,0,0,0.45)',
+        'pointer-events:none',
+        'z-index:2000',
+        'animation:spellBurst 900ms ease-out forwards'
+    ].join(';');
+    document.body.appendChild(burst);
+    setTimeout(() => burst.remove(), 950);
+    target.style.boxShadow = `0 0 35px ${spell.glow}`;
+    setTimeout(() => { target.style.boxShadow = ''; }, 800);
+    const help = getEl('spell-help');
+    if (help) help.innerText = `${spell.name} spell cast at ${target.querySelector('h3')?.innerText || 'the target box'}.`;
+    return true;
+}
 
 // --- GLOBAL REAL-TIME SYNC (RTDB LOGIC FROM SHAREDMINDS) ---
 window.syncRealmItems = (item = null, isDeleted = false) => {
@@ -183,6 +320,7 @@ const sketch = (p) => {
         canvas.parent('canvas-container');
         applyTheme(currentTheme);
         initUIListeners();
+        renderSpellInventory();
     };
 
     p.draw = () => {
@@ -192,29 +330,69 @@ const sketch = (p) => {
             // Show full image stretched to fill canvas
             p.image(currentBg, 0, 0, p.width, p.height);
         }
-        // Fairy dust particles
-        if (fairyDustMode && currentHand) {
-            const kps = currentHand.landmarks;
-            const tip = kps[8]; // index fingertip
-            const hx = p.map(tip[0], 0, handCapture.width, p.width, 0); // mirrored
-            const hy = p.map(tip[1], 0, handCapture.height, 0, p.height);
-            // Spawn 4 orbs per frame for a dense, sensitive trail
-            const colors = [
-                [255, 100, 200], [180, 100, 255], [100, 220, 255],
-                [255, 220, 80],  [100, 255, 180], [255, 140, 80]
-            ];
-            for (let s = 0; s < 4; s++) {
-                const c = colors[Math.floor(p.random(colors.length))];
-                fairyParticles.push({
-                    x: hx + p.random(-10, 10),
-                    y: hy + p.random(-10, 10),
-                    vx: p.random(-1, 1),
-                    vy: p.random(-1.2, -0.2),
-                    r: c[0], g: c[1], b: c[2],
-                    size: p.random(6, 16),
-                    life: 1.0
-                });
+        const fingerPos = fairyDustMode ? getIndexFingerPosition(p) : null;
+
+        if (fairyDustMode && p.frameCount % 65 === 0 && elementOrbs.length < 8) {
+            const types = Object.keys(elementSpells);
+            const type = types[Math.floor(p.random(types.length))];
+            elementOrbs.push({
+                type,
+                x: p.random(55, p.width - 55),
+                y: p.random(55, p.height - 55),
+                size: p.random(34, 48),
+                seed: p.random(1000),
+                vx: p.random(-0.35, 0.35),
+                vy: p.random(-0.25, 0.25)
+            });
+        }
+
+        for (let i = elementOrbs.length - 1; i >= 0; i--) {
+            const orb = elementOrbs[i];
+            const spell = elementSpells[orb.type];
+            const bob = p.sin(p.frameCount * 0.04 + orb.seed) * 7;
+            orb.x += orb.vx;
+            orb.y += orb.vy;
+            if (orb.x < 35 || orb.x > p.width - 35) orb.vx *= -1;
+            if (orb.y < 35 || orb.y > p.height - 35) orb.vy *= -1;
+
+            p.push();
+            p.noStroke();
+            p.drawingContext.shadowBlur = 24;
+            p.drawingContext.shadowColor = spell.glow;
+            p.fill(spell.color[0], spell.color[1], spell.color[2], 160);
+            p.ellipse(orb.x, orb.y + bob, orb.size);
+            p.fill(255, 255, 255, 230);
+            p.textAlign(p.CENTER, p.CENTER);
+            p.textSize(orb.size * 0.55);
+            p.text(spell.icon, orb.x, orb.y + bob);
+            p.pop();
+
+            if (fingerPos && p.dist(fingerPos.x, fingerPos.y, orb.x, orb.y + bob) < orb.size * 0.75) {
+                elementOrbs.splice(i, 1);
+                addSpellToInventory(orb.type);
+                for (let s = 0; s < 18; s++) {
+                    fairyParticles.push({
+                        x: orb.x,
+                        y: orb.y + bob,
+                        vx: p.random(-2, 2),
+                        vy: p.random(-2.4, 1.2),
+                        r: spell.color[0],
+                        g: spell.color[1],
+                        b: spell.color[2],
+                        size: p.random(8, 18),
+                        life: 1.0
+                    });
+                }
             }
+        }
+
+        if (fingerPos) {
+            p.push();
+            p.noFill();
+            p.stroke(255, 255, 255, 210);
+            p.strokeWeight(2);
+            p.circle(fingerPos.x, fingerPos.y, 26);
+            p.pop();
         }
         // Draw & age fairy dust orbs
         for (let i = fairyParticles.length - 1; i >= 0; i--) {
@@ -234,6 +412,24 @@ const sketch = (p) => {
             pt.x += pt.vx; pt.y += pt.vy;
             pt.life -= 0.018;
             if (pt.life <= 0) fairyParticles.splice(i, 1);
+        }
+
+        for (let i = spellBursts.length - 1; i >= 0; i--) {
+            const burst = spellBursts[i];
+            const spell = elementSpells[burst.type];
+            p.push();
+            p.noFill();
+            p.stroke(spell.color[0], spell.color[1], spell.color[2], burst.life * 230);
+            p.strokeWeight(5);
+            p.circle(burst.x, burst.y, (1 - burst.life) * 180 + 30);
+            p.fill(255, 255, 255, burst.life * 210);
+            p.noStroke();
+            p.textAlign(p.CENTER, p.CENTER);
+            p.textSize(44 + (1 - burst.life) * 24);
+            p.text(spell.icon, burst.x, burst.y);
+            p.pop();
+            burst.life -= 0.035;
+            if (burst.life <= 0) spellBursts.splice(i, 1);
         }
 
         items.forEach(item => {
@@ -278,6 +474,7 @@ const sketch = (p) => {
 
     p.mousePressed = () => {
         if (p.mouseX < 0 || p.mouseX > p.width || p.mouseY < 0 || p.mouseY > p.height) return;
+        if (selectedSpell && castSpellAtCanvas(p, p.mouseX, p.mouseY)) return;
         let f = false;
         // Check for dragging or erasing first
         for (let i = items.length - 1; i >= 0; i--) { 
@@ -429,18 +626,18 @@ const sketch = (p) => {
                 handCapture = p.createCapture(p.VIDEO, () => {
                     handCapture.size(320, 240); handCapture.hide();
                     handpose = ml5.handpose(handCapture, { flipHorizontal: true }, () => {
-                        btn.innerText = '🖐️ FAIRY DUST ON — WAVE!'; btn.style.opacity = '1';
+                        btn.innerText = '🖐️ SPELL ORBS ON — COLLECT!'; btn.style.opacity = '1';
                         btn.style.background = 'linear-gradient(135deg, #ff79c6, #50fa7b)';
                         handpose.on('predict', (results) => { currentHand = results.length > 0 ? results[0] : null; });
                     });
                 });
             } else {
-                btn.innerText = '🖐️ FAIRY DUST ON — WAVE!'; btn.style.opacity = '1';
+                btn.innerText = '🖐️ SPELL ORBS ON — COLLECT!'; btn.style.opacity = '1';
                 btn.style.background = 'linear-gradient(135deg, #ff79c6, #50fa7b)';
             }
         } else {
             currentHand = null;
-            btn.innerText = 'ACTIVATE FAIRY DUST ✨'; btn.style.opacity = '1';
+            btn.innerText = 'ACTIVATE SPELL ORBS ✨'; btn.style.opacity = '1';
             btn.style.background = 'linear-gradient(135deg, #bd93f9, #ff79c6)';
         }
     };
@@ -593,6 +790,7 @@ function loadGallery() {
                 card.className = 'scene-card'; card.style.borderColor = themes[d.realm || 'emerald'].primary;
                 card.innerHTML = `<h3>${d.creator}'s ${d.realm || 'emerald'} Realm</h3><p style="font-size:0.7rem; opacity:0.6;">Click to enter and edit together!</p>`;
                 card.onclick = () => {
+                    if (selectedSpell && castSpellAtElement(card)) return;
                     currentRealm = d.uid; 
                     currentTheme = d.realm || 'emerald';
                     if (getEl('main-title')) getEl('main-title').innerText = `${d.creator}'s Kingdom`;

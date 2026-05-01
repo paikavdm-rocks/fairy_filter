@@ -76,6 +76,11 @@
         .scene-card h3 { font-family: 'Playfair Display'; margin-top: 0; color: var(--secondary); }
 
         @keyframes spin { from {transform: rotate(0deg);} to {transform: rotate(360deg);} }
+        @keyframes spellBurst {
+            0% { transform: translate(-50%, -50%) scale(0.25); opacity: 0; }
+            18% { opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1.8); opacity: 0; }
+        }
     </style>
 </head>
 <body>
@@ -148,10 +153,16 @@
 
                     <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid var(--border);">
                         <h3 style="font-size: 1rem; color: var(--secondary); margin-bottom: 5px;">🪄 Fairy Dust Wand</h3>
-                        <p style="font-size: 0.7rem; color: #aaa; margin-bottom: 10px;">Point your index finger at the camera to paint magic!</p>
+                        <p style="font-size: 0.7rem; color: #aaa; margin-bottom: 10px;">Point your index finger at water, fire, or air orbs to collect them as spells.</p>
                         <button id="fairy-dust-btn" style="width: 100%; padding: 14px; border-radius: 12px; background: linear-gradient(135deg, #bd93f9, #ff79c6); color: white; border: none; cursor: pointer; font-weight: bold; font-size: 0.9rem; box-shadow: 0 5px 15px rgba(189,147,249,0.3);">
-                            ACTIVATE FAIRY DUST ✨
+                            ACTIVATE SPELL ORBS ✨
                         </button>
+                    </div>
+
+                    <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid var(--border);">
+                        <h3 style="font-size: 1rem; color: var(--primary); margin-bottom: 5px;">📜 Spell Inventory</h3>
+                        <p id="spell-help" style="font-size: 0.7rem; color: #aaa; margin-bottom: 10px;">Collect elemental orbs with your index finger, then select a spell and click a target box.</p>
+                        <div id="spell-inventory" style="display: flex; flex-wrap: wrap; gap: 8px; min-height: 48px; align-items: center;"></div>
                     </div>
 
                     <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid var(--border);">
