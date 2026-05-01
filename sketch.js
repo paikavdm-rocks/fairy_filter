@@ -943,7 +943,7 @@ window.selectSpell = function(type) {
 };
 
 function renderSpellInventory() {
-  // Update HTML overlay counts and selection state
+  // Update HTML overlay counts and selection state in the bottom bar
   Object.keys(spellInventory).forEach(type => {
     let el = document.getElementById('count-' + type);
     if (el) el.innerText = spellInventory[type];
@@ -955,32 +955,8 @@ function renderSpellInventory() {
     }
   });
 
-  if (!spellInventoryDiv) return;
-  spellInventoryDiv.html('');
-  Object.keys(elementalSpells).forEach((spellType) => {
-    let spell = elementalSpells[spellType];
-    let count = spellInventory[spellType];
-    let btn = createButton(`${spell.icon} ${spellType} x${count}`);
-    btn.parent(spellInventoryDiv);
-    btn.attribute('aria-label', `${spellType} spell`);
-    btn.style('padding', '10px 14px');
-    btn.style('border-radius', '14px');
-    btn.style('border', `2px solid ${selectedSpell === spellType ? spell.color : 'rgba(255,255,255,0.35)'}`);
-    btn.style('background', count > 0 ? 'rgba(20,0,40,0.82)' : 'rgba(20,0,40,0.35)');
-    btn.style('color', count > 0 ? '#fff' : 'rgba(255,255,255,0.45)');
-    btn.style('font-family', 'Quicksand');
-    btn.style('font-weight', 'bold');
-    btn.style('cursor', count > 0 ? 'pointer' : 'default');
-    btn.style('box-shadow', selectedSpell === spellType ? `0 0 18px ${spell.color}` : 'none');
-    btn.mousePressed(() => {
-      if (spellInventory[spellType] <= 0) return;
-      selectedSpell = spellType;
-      mySpellChoice = spellType;
-      if (myPlayerID) db.ref('players/' + myPlayerID + '/choice').set(mySpellChoice);
-      if (spellStatusText) spellStatusText.html(`${spell.icon} ${spellType} selected. Click the box of whoever you want to cast it at.`);
-      renderSpellInventory();
-    });
-  });
+  // Legacy p5 buttons hidden — we now use the sleek HTML bar below!
+  if (spellInventoryDiv) spellInventoryDiv.style('display', 'none');
 }
 
 function mousePressed() {
