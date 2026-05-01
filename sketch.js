@@ -55,8 +55,8 @@ const elementalSpells = {
 };
 let combatButtons = [];
 let isMegaSpell = false;
-let currentKingdom = 'Emerald';
-let kingdomColor = '#ffbaff'; // Default
+let currentKingdom = 'Fairytopia';
+let kingdomColor = '#ff79c6'; // Magenta theme
 
 // Cloud event listener for remote players
 db.ref('players').on('value', (snapshot) => {
@@ -122,11 +122,11 @@ auth.onAuthStateChanged(user => {
     document.getElementById('login-overlay').style.display = 'none';
     myPlayerID = user.uid;
     myPlayerName = user.email ? user.email.split('@')[0] : "Fairy"; // Base the name completely off the custom verified email
+    myPlayerName = user.email ? user.email.split('@')[0] : "Fairy";
     if (nameInput) nameInput.value(myPlayerName);
     
     // Assign a unique magical color to this user based on their ID
     myFairyColor = hashStringToColor(myPlayerID);
-    wingColor = myFairyColor;
     
     // Boot the Peer-to-Peer visual grid!
     initWebRTC();
@@ -398,8 +398,8 @@ function setup() {
   video.elt.setAttribute('muted', '');       // Critical for iOS
   video.hide();
 
-  // Create default fairy effect color (will be set properly after login)
-  wingColor = color(200, 100, 255, 120); 
+  // Create default fairy effect color
+  myFairyColor = color(255, 121, 198); 
 }
 
 function hashStringToColor(str) {
@@ -428,8 +428,8 @@ function draw() {
 
     // Magic Frame
     noFill();
-    strokeWeight(20);
-    stroke(wingColor);
+    strokeWeight(15);
+    stroke(myFairyColor);
     rect(0, 0, width, height);
 
     // Ambient falling particles over the static image
@@ -508,8 +508,8 @@ function draw() {
 
   // Magic Frame
   noFill();
-  strokeWeight(20);
-  stroke(wingColor);
+  strokeWeight(15);
+  stroke(myFairyColor);
   rect(0, 0, width, height);
 
   // Particle System
@@ -548,215 +548,7 @@ function draw() {
   drawPlayerHud();
 }
 
-// REAL-TIME VISUALS: This simulates turning you into a fairy in p5.
-function applyFairyGlow() {
-  fill(wingColor);
-  noStroke();
-
-  if (poses.length > 0) {
-    let person = poses[0];
-    let pose = person.pose || person; // Support both poseNet formats
-
-    // Draw Wings on Shoulders
-    let lShoulder = pose.leftShoulder || pose.keypoints.find(k => k.part === 'leftShoulder');
-    let rShoulder = pose.rightShoulder || pose.keypoints.find(k => k.part === 'rightShoulder');
-
-    if (lShoulder && (lShoulder.score || lShoulder.confidence) > 0.1) {
-      let sx = width - map(lShoulder.x, 0, vidW(), 0, width);
-      let sy = map(lShoulder.y, 0, vidH(), 0, height);
-      drawWing(sx, sy, 1);
-    }
-
-    if (rShoulder && (rShoulder.score || rShoulder.confidence) > 0.1) {
-      let sx = width - map(rShoulder.x, 0, vidW(), 0, width);
-      let sy = map(rShoulder.y, 0, vidH(), 0, height);
-      drawWing(sx, sy, -1);
-    }
-
-    // Draw Fairy Crown and Ears on the Head
-    let leftEar = pose.leftEar || pose.keypoints.find(k => k.part === 'leftEar');
-    let rightEar = pose.rightEar || pose.keypoints.find(k => k.part === 'rightEar');
-    let nose = pose.nose || pose.keypoints.find(k => k.part === 'nose');
-
-    if (nose && (nose.score || nose.confidence || 1) > 0.1) {
-      // SCALE COORDINATES
-      let noseX = nose.x || (nose.position ? nose.position.x : 0);
-      let noseY = nose.y || (nose.position ? nose.position.y : 0);
-      let nx = width - map(noseX, 0, vidW(), 0, width);
-      let ny = map(noseY, 0, vidH(), 0, height);
-
-      // Draw pointy ears
-      if (leftEar && (leftEar.score || leftEar.confidence) > 0.1) {
-        let ex = width - map(leftEar.x, 0, vidW(), 0, width);
-        let ey = map(leftEar.y, 0, vidH(), 0, height);
-        drawElfEar(ex, ey, 1);
-      }
-      if (rightEar && (rightEar.score || rightEar.confidence) > 0.1) {
-        let ex = width - map(rightEar.x, 0, vidW(), 0, width);
-        let ey = map(rightEar.y, 0, vidH(), 0, height);
-        drawElfEar(ex, ey, -1);
-      }
-
-      // Draw intricate crown
-      drawCrown(nx, ny - 90);
-    }
-
-    // Particles flowing down from wings
-    if (frameCount % 3 === 0 && lShoulder && rShoulder) {
-      let lsx = width - map(lShoulder.x, 0, vidW(), 0, width);
-      let rsx = width - map(rShoulder.x, 0, vidW(), 0, width);
-      particles.push(new Particle(lsx + random(-20, 20), map(lShoulder.y, 0, vidH(), 0, height)));
-      particles.push(new Particle(rsx + random(-20, 20), map(rShoulder.y, 0, vidH(), 0, height)));
-    }
-  } else {
-    // Fallback if no person found
-    drawWing(width * 0.4, height * 0.4, 1);
-    drawWing(width * 0.6, height * 0.4, -1);
-    for (let i = 0; i < 3; i++) {
-      particles.push(new Particle(random(width * 0.2, width * 0.8), random(height * 0.2, height * 0.6)));
-    }
-  }
-}
-
-function drawWing(x, y, dir) {
-  push();
-  translate(x, y);
-
-  let flutter = sin(frameCount * 0.2) * 0.1;
-  rotate(dir * PI / 8 + flutter);
-
-  // Glowing effect
-  blendMode(ADD);
-  noStroke();
-
-  // Insect wings (4 layers)
-  fill(150, 50, 255, 100);
-  ellipse(dir * 50, -80, 100, 200);
-
-  fill(50, 200, 255, 120);
-  ellipse(dir * 40, -60, 60, 150);
-
-  fill(255, 150, 100, 150);
-  ellipse(dir * 30, -50, 30, 100);
-
-  fill(200, 50, 150, 100);
-  ellipse(dir * 35, 50, 70, 120);
-
-  fill(100, 100, 255, 150);
-  ellipse(dir * 25, 40, 40, 80);
-
-  blendMode(BLEND);
-  strokeWeight(2);
-  noFill();
-
-  // Intricate pulsing veins
-  let pulse = map(sin(frameCount * 0.1), -1, 1, 100, 255);
-  stroke(255, 255, 255, pulse);
-  bezier(0, 0, dir * 25, -40, dir * 60, -90, dir * 50, -180);
-  bezier(0, 0, dir * 15, -20, dir * 40, -60, dir * 70, -70);
-  bezier(0, 0, dir * 10, -10, dir * 30, -30, dir * 50, -20);
-
-  bezier(0, 0, dir * 15, 20, dir * 40, 60, dir * 30, 110);
-  bezier(0, 0, dir * 10, 10, dir * 30, 40, dir * 60, 50);
-
-  pop();
-}
-
-function drawCrown(x, y) {
-  push();
-  translate(x, y);
-
-  // Floating magic halo rings
-  noFill();
-  strokeWeight(2);
-  stroke(255, 215, 0, 150);
-  push();
-  rotate(frameCount * 0.02);
-  ellipse(0, 5, 80, 20);
-  pop();
-
-  push();
-  rotate(-frameCount * 0.015);
-  stroke(255, 150, 255, 150);
-  ellipse(0, -10, 100, 30);
-  pop();
-
-  // Tiara lattice
-  blendMode(ADD);
-  noStroke();
-  fill(255, 100, 255, 255);
-  ellipse(0, 0, 25, 30);
-  fill(255, 255, 255, 255);
-  ellipse(0, 0, 10, 15);
-
-  blendMode(BLEND);
-  fill(255, 215, 0, 220);
-  triangle(-12, 0, 12, 0, 0, -50);
-
-  // Side gems
-  for (let d = -1; d <= 1; d += 2) {
-    for (let j = 1; j <= 3; j++) {
-      let offset = j * 25;
-      let heightOff = j * 10;
-      let gemSize = 20 - j * 4;
-
-      stroke(255, 215, 0, 200);
-      strokeWeight(3);
-      noFill();
-      bezier(d * (offset - 25), heightOff - 10, d * (offset - 15), heightOff, d * offset, heightOff, d * offset, heightOff);
-
-      noStroke();
-      blendMode(ADD);
-      if (j === 2) fill(50, 200, 255, 255);
-      else fill(255, 255, 100, 255);
-
-      ellipse(d * offset, heightOff, gemSize, gemSize + 5);
-
-      blendMode(BLEND);
-      fill(255, 215, 0, 220);
-      triangle(d * offset - gemSize / 2, heightOff, d * offset + gemSize / 2, heightOff, d * offset, heightOff - (40 - j * 8));
-    }
-  }
-  pop();
-}
-
-function drawElfEar(x, y, dir) {
-  push();
-  translate(x, y);
-
-  noStroke();
-  fill(255, 220, 220, 255);
-
-  beginShape();
-  vertex(dir * -10, 20);
-  vertex(dir * -15, -10);
-  vertex(dir * 50, -50); // longer tip!
-  vertex(dir * 15, -5);
-  vertex(dir * 5, 25);
-  endShape(CLOSE);
-
-  fill(255, 120, 120, 200);
-  beginShape();
-  vertex(dir * -5, 10);
-  vertex(dir * -5, -5);
-  vertex(dir * 40, -40);
-  vertex(dir * 5, 0);
-  endShape(CLOSE);
-
-  // Magical dangling earring!
-  stroke(255, 215, 0, 255);
-  strokeWeight(2);
-  line(dir * 0, 20, dir * 0, 40);
-  noStroke();
-  blendMode(ADD);
-  fill(100, 255, 255, 255);
-  ellipse(dir * 0, 45, 10, 20);
-  fill(255, 255, 255, 255);
-  ellipse(dir * 0, 45, 4, 8);
-
-  blendMode(BLEND);
-  pop();
-}
+// Legacy fairy glow removed for system simplification
 
 // AI COMPOSITION: Apply the AI transformation only to the region of the object.
 function applyObjectTransformation() {
