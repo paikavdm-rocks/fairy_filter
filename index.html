@@ -85,9 +85,21 @@
         @keyframes flyIn { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
         h1 { font-family: 'Cinzel Decorative', cursive; margin-top: 20px; letter-spacing: 4px; text-shadow: 0 0 20px var(--accent); }
+        #loading-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; color: #ff79c6; display: flex; align-items: center;
+            justify-content: center; font-size: 1.5rem; z-index: 2000;
+        }
     </style>
+    <script>
+        console.log("Fairy Filter Booting...");
+        window.onerror = function(msg, url, line) {
+            console.error("Magical Error: " + msg + " at " + line);
+        };
+    </script>
 </head>
 <body>
+    <div id="loading-screen">✨ Awakening the Arena...</div>
 
     <div id="login-overlay">
         <div class="auth-box">

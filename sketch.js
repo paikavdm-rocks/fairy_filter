@@ -9,10 +9,9 @@ const firebaseConfig = {
   appId: "1:531666119490:web:329cedbdaf92247cdef6db"
 };
 
-// Initialize Firebase Realtime Cloud & Auth
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-const auth = firebase.auth();
+// Global variables for Firebase
+let db;
+let auth;
 
 // Helper: get actual video capture dimensions from the camera hardware
 function vidW() { return video && video.elt && video.elt.videoWidth ? video.elt.videoWidth : 640; }
@@ -58,43 +57,65 @@ let isMegaSpell = false;
 let currentKingdom = 'Fairytopia';
 let kingdomColor = '#ff79c6'; // Magenta theme
 
-// Cloud event listener for remote players
-db.ref('players').on('value', (snapshot) => {
-  const data = snapshot.val();
-  if (data) {
-    remotePlayers = data;
+function initFirebaseListeners() {
+  // Cloud event listener for remote players
+  db.ref('players').on('value', (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+      remotePlayers = data;
 
-    // Sync our own stats from the cloud to ensure consistency across sessions
-    if (myPlayerID && data[myPlayerID]) {
-      fairyMana = data[myPlayerID].mana || 0;
-      spiritHealth = data[myPlayerID].spirit || 100;
-    }
+      // Sync our own stats from the cloud to ensure consistency across sessions
+      if (myPlayerID && data[myPlayerID]) {
+        fairyMana = data[myPlayerID].mana || 0;
+        spiritHealth = data[myPlayerID].spirit || 100;
+      }
 
-    // Scan for new connections to form WebRTC peer tunnels
-    for (let pID in remotePlayers) {
-      if (pID === myPlayerID) continue; // Skip ourselves
-      
-      let remotePeerID = remotePlayers[pID].peerID;
-      
-      // Only invoke the phone call logic if we haven't already shaken hands
-      // The tie-breaker mathematical standard string-comp avoids an infinite race collision!
-      if (remotePeerID && myPeerID && !connectedPeers[remotePeerID]) {
-        if (myPeerID > remotePeerID) {
-          // Send them our live P5 canvas as a literal video stream at 20 FPS (more stable)
-          let localStream = document.querySelector('canvas').captureStream(20);
-          let call = peer.call(remotePeerID, localStream);
-          connectedPeers[remotePeerID] = true;
-          
-          call.on('stream', (remoteStream) => {
-            addRemoteVideo(remotePeerID, remoteStream);
-          });
+      // Scan for new connections to form WebRTC peer tunnels
+      for (let pID in remotePlayers) {
+        if (pID === myPlayerID) continue; // Skip ourselves
+        
+        let remotePeerID = remotePlayers[pID].peerID;
+        
+        // Only invoke the phone call logic if we haven't already shaken hands
+        // The tie-breaker mathematical standard string-comp avoids an infinite race collision!
+        if (remotePeerID && myPeerID && !connectedPeers[remotePeerID]) {
+          if (myPeerID > remotePeerID) {
+            // Send them our live P5 canvas as a literal video stream at 20 FPS (more stable)
+            let localStream = document.querySelector('canvas').captureStream(20);
+            let call = peer.call(remotePeerID, localStream);
+            connectedPeers[remotePeerID] = true;
+            
+            call.on('stream', (remoteStream) => {
+              addRemoteVideo(remotePeerID, remoteStream);
+            });
+          }
         }
       }
+    } else {
+      remotePlayers = {};
     }
-  } else {
-    remotePlayers = {};
-  }
-});
+  });
+
+  // Authentication State Listener
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      // User is fully authenticated globally!
+      document.getElementById('login-overlay').style.display = 'none';
+      myPlayerID = user.uid;
+      myPlayerName = user.email ? user.email.split('@')[0] : "Fairy"; 
+      if (nameInput) nameInput.value(myPlayerName);
+      
+      myFairyColor = hashStringToColor(myPlayerID);
+      
+      initWebRTC();
+      
+      db.ref('players/' + myPlayerID).onDisconnect().remove();
+    } else {
+      document.getElementById('login-overlay').style.display = 'flex';
+      myPlayerID = null;
+    }
+  });
+}
 
 // Authentication System Logic
 function loginWithEmail() {
@@ -116,32 +137,6 @@ function loginWithGoogle() {
 }
 
 // Authentication State Listener
-auth.onAuthStateChanged(user => {
-  if (user) {
-    // User is fully authenticated globally!
-    document.getElementById('login-overlay').style.display = 'none';
-    myPlayerID = user.uid;
-    myPlayerName = user.email ? user.email.split('@')[0] : "Fairy"; // Base the name completely off the custom verified email
-    myPlayerName = user.email ? user.email.split('@')[0] : "Fairy";
-    if (nameInput) nameInput.value(myPlayerName);
-    
-    // Assign a unique magical color to this user based on their ID
-    myFairyColor = hashStringToColor(myPlayerID);
-    
-    // Boot the Peer-to-Peer visual grid!
-    initWebRTC();
-    
-    // Auto-delete securely deletes our fairy footprint from the world upon window exit
-    db.ref('players/' + myPlayerID).onDisconnect().remove();
-  } else {
-    // Forced Logout
-    document.getElementById('login-overlay').style.display = 'flex';
-    myPlayerID = null;
-  }
-});
-// --------------------------------------
-
-// Inject the physical WebRTC HTML elements into the gallery!
 function addRemoteVideo(remotePeerID, stream) {
   if (document.getElementById(remotePeerID)) return; // Don't duplicate rendering displays!
   
@@ -223,7 +218,22 @@ let wingColor;
 let currentObjectMask = null; // AI result for object
 let currentObjectTransformed = null; // AI result for object style
 
+function initFirebase() {
+  try {
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    db = firebase.database();
+    auth = firebase.auth();
+    console.log("Firebase Connected");
+    initFirebaseListeners();
+  } catch (e) {
+    console.error("Firebase Init Error:", e);
+  }
+}
+
 function setup() {
+  initFirebase();
   // Mobile responsive sizing
   let cw = min(windowWidth - 40, 640);
   let ch = cw * 0.75; // Standard 4:3
@@ -233,6 +243,10 @@ function setup() {
 
   canvas = createCanvas(cw, ch);
   canvas.parent('p5-container');
+  
+  // Remove loading screen
+  let loader = document.getElementById('loading-screen');
+  if (loader) loader.style.display = 'none';
 
   // Custom layout for UI underneath canvas
   let controls = createDiv();
