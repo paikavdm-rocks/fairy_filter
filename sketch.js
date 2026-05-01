@@ -14,7 +14,11 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const auth = firebase.auth();
 
-// Canvas2D shadowColor must be a CSS string — assigning a p5.Color can break rendering.
+// Helper: get actual video capture dimensions from the camera hardware
+function vidW() { return video && video.elt && video.elt.videoWidth ? video.elt.videoWidth : 640; }
+function vidH() { return video && video.elt && video.elt.videoHeight ? video.elt.videoHeight : 480; }
+
+// Canvas2D shadowColor must be a CSS string — a raw p5.Color object can break text/shape rendering.
 function fairyAccentRgba(a) {
   try {
     if (myFairyColor != null) {
@@ -33,15 +37,17 @@ let remotePlayers = {};
 let myPeerID = null;
 let peer = null;
 let connectedPeers = {};
-let currentStep = 1; // 1: Name, 2: Wand, 3: Round 1 Gathering, 4: Round 2 Duel, 5: Round 3 Revelation
+let currentStep = 1; // 1: Name, 2: Wand, 3: Gathering, 4: Duel, 5: Revelation
 let spellContainer;
 let myFairyColor; // Unique to each player
-let myCanvasStream = null;
 let spiritOrbs = [];
 let fairyMana = 0;
 let spiritHealth = 100;
 let mySpellChoice = 'Fire';
 let combatButtons = [];
+let isMegaSpell = false;
+let currentKingdom = 'Emerald';
+let kingdomColor = '#ffbaff'; // Default
 
 // Cloud event listener for remote players
 db.ref('players').on('value', (snapshot) => {
@@ -56,35 +62,23 @@ db.ref('players').on('value', (snapshot) => {
     }
 
     // Scan for new connections to form WebRTC peer tunnels
-    const now = Date.now();
     for (let pID in remotePlayers) {
       if (pID === myPlayerID) continue; // Skip ourselves
       
-      let pData = remotePlayers[pID];
-      let remotePeerID = pData.peerID;
+      let remotePeerID = remotePlayers[pID].peerID;
       
-      // ONLY connect if the player has been "Active" in the last 40 seconds
-      // This prevents the browser from freezing by trying to call 100 dead players!
-      let isAlive = pData.lastSeen && (now - pData.lastSeen < 40000);
-      
-      if (isAlive && remotePeerID && myPeerID && !connectedPeers[remotePeerID]) {
+      // Only invoke the phone call logic if we haven't already shaken hands
+      // The tie-breaker mathematical standard string-comp avoids an infinite race collision!
+      if (remotePeerID && myPeerID && !connectedPeers[remotePeerID]) {
         if (myPeerID > remotePeerID) {
-          if (!myCanvasStream) {
-            let c = canvas.elt; // Use specific p5 canvas element
-            if (c) myCanvasStream = c.captureStream(30);
-          }
-          if (myCanvasStream) {
-            let call = peer.call(remotePeerID, myCanvasStream);
-            connectedPeers[remotePeerID] = true;
-            
-            call.on('stream', (remoteStream) => {
-              addRemoteVideo(remotePeerID, remoteStream);
-            });
-            call.on('error', (err) => {
-              console.log("Call error", err);
-              delete connectedPeers[remotePeerID];
-            });
-          }
+          // Send them our live P5 canvas as a literal video stream at 20 FPS (more stable)
+          let localStream = document.querySelector('canvas').captureStream(20);
+          let call = peer.call(remotePeerID, localStream);
+          connectedPeers[remotePeerID] = true;
+          
+          call.on('stream', (remoteStream) => {
+            addRemoteVideo(remotePeerID, remoteStream);
+          });
         }
       }
     }
@@ -165,36 +159,26 @@ function initWebRTC() {
   peer = new Peer();
   peer.on('open', (id) => {
     myPeerID = id;
+    // Tell Firebase that we are 100% authentically ready to receive FaceTime video calls!
     if (myPlayerID) {
       db.ref('players/' + myPlayerID).set({ 
         peerID: myPeerID, 
         name: myPlayerName, 
         mana: 0, 
         spirit: 100,
-        choice: 'Fire',
-        lastSeen: Date.now()
+        choice: 'Fire'
       });
     }
   });
 
   peer.on('call', (call) => {
-    if (!myCanvasStream) {
-      let c = canvas.elt;
-      if (c) myCanvasStream = c.captureStream(30);
-    }
-    if (myCanvasStream) {
-      call.answer(myCanvasStream);
-      call.on('stream', (remoteStream) => {
-        addRemoteVideo(call.peer, remoteStream);
-      });
-    }
+    // We are receiving a call from another Player's browser! Pass them our P5 element stream natively.
+    let localStream = document.querySelector('canvas').captureStream(20);
+    call.answer(localStream);
+    call.on('stream', (remoteStream) => {
+      addRemoteVideo(call.peer, remoteStream);
+    });
   });
-
-  setInterval(() => {
-    if (myPlayerID) {
-      db.ref('players/' + myPlayerID + '/lastSeen').set(Date.now());
-    }
-  }, 10000); 
 }
 
 const replicateProxy = "https://itp-ima-replicate-proxy.web.app/api/create_n_get";
@@ -207,6 +191,10 @@ let particles = [];
 let isCasting = false;
 let handPose;
 let hands = [];
+let lastWandX = null;
+let lastWandY = null;
+let wandSmoothFrame = -1;
+const WAND_TRACK_SMOOTH = 0.22;
 let bodyPose;
 let poses = [];
 
@@ -237,11 +225,6 @@ function setup() {
   canvas = createCanvas(cw, ch);
   canvas.parent('p5-container');
 
-  // Check for secure origin (Camera requirement)
-  if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-    alert("⚠️ MAGICAL WARNING: Cameras only work on Secure Connections (HTTPS or localhost). Your mirror may remain dark!");
-  }
-
   // Custom layout for UI underneath canvas
   let controls = createDiv();
   controls.parent('controls-container');
@@ -258,18 +241,12 @@ function setup() {
   inputRow.style('gap', '10px');
   inputRow.parent(controls);
 
-  // --- PHASE 1: NAMING ---
+  // --- FAIRY NAME OPTION ---
   let nameContainer = createDiv();
   nameContainer.style('display', 'flex');
   nameContainer.style('align-items', 'center');
   nameContainer.style('gap', '10px');
   nameContainer.parent(inputRow);
-
-  // --- PHASE 2: WAND CREATION ---
-  spellContainer = createDiv();
-  spellContainer.style('display', 'none'); 
-  spellContainer.style('gap', '10px');
-  spellContainer.parent(inputRow);
 
   let nameLabel = createSpan("Your Fairy Name:");
   nameLabel.style('color', '#ffbaff');
@@ -306,25 +283,25 @@ function setup() {
   nameBtn.parent(nameContainer);
   nameBtn.mousePressed(() => {
     if (currentStep === 1) {
-      console.log("Advancing to Step 2");
       nextStep(2);
-      nameContainer.style('display', 'none'); // Hide naming UI entirely
-      spellContainer.style('display', 'flex'); // Show wand UI
+      nameBtn.hide();
+      spellContainer.style('display', 'flex');
       
-      // Reveal the mirror gallery
+      // Reveal the gallery
       let gallery = document.getElementById('mirrors-gallery');
-      if (gallery) {
-        gallery.style.opacity = '1';
-        gallery.style.height = 'auto';
-        gallery.style.overflow = 'visible';
-        gallery.style.pointerEvents = 'all';
-        gallery.classList.add('fly-in');
-      }
+      gallery.style.opacity = '1';
+      gallery.style.height = 'auto';
+      gallery.style.overflow = 'visible';
+      gallery.style.pointerEvents = 'all';
+      gallery.classList.add('fly-in');
     }
   });
   // -------------------------
 
-  // (spellContainer already created above)
+  spellContainer = createDiv();
+  spellContainer.style('display', 'none'); // Hidden until named
+  spellContainer.style('gap', '10px');
+  spellContainer.parent(inputRow);
 
   let input_image_field = createInput("A crystal water flower");
   input_image_field.style('width', '100%');
@@ -379,37 +356,21 @@ function setup() {
 
   let constraints = { audio: false, video: { facingMode: "user" } };
 
-  // Wait for the strict mobile camera permissions to be approved AND the 
-  // media stream to safely exist before booting up the intensive ML5 trackers. 
-  // This explicitly prevents iOS/mobile from silently dropping the AI detection completely!
-  // Start capture with explicit constraints
-  video = createCapture(VIDEO, () => {
-    video.size(width, height);
-    console.log("Stream dimensions locked:", video.width, video.height);
-    
-    // Start tracking once stream is confirmed flowing
-    if (typeof ml5 !== 'undefined') {
-      handPose = ml5.handPose({ maxHands: 1 }, () => {
-        console.log("Hand tracker ready");
-        handPose.detectStart(video.elt, (results) => { hands = results; });
-      });
-      
-      bodyPose = ml5.bodyPose(() => {
-          console.log("Body tracker ready");
-          bodyPose.detectStart(video.elt, (results) => { poses = results; });
-      });
-    }
+  // Only handpose needed — no body tracking
+  video = createCapture(constraints, function () {
+    // Handpose legacy
+    handPose = ml5.handpose(video, { flipHorizontal: false }, () => {
+      console.log("Hand tracker ready");
+    });
+    handPose.on('predict', (results) => {
+      hands = Array.isArray(results) && results.length > 0 ? results.slice(0, 1) : [];
+    });
   });
 
-  video.parent('controls-container'); // Attach to DOM to prevent power-saving freezes
-  video.elt.setAttribute('playsinline', ''); 
-  video.elt.setAttribute('autoplay', 'autoplay'); 
-  video.elt.setAttribute('muted', 'muted');
-  video.elt.style.position = 'absolute';
-  video.elt.style.top = '-9999px'; // Hide it off-screen
-  
-  video.elt.play().then(() => console.log("Video playing")).catch(e => console.log("Video Play Error:", e));
-  loop(); // Ensure loop is explicitly active
+  video.elt.setAttribute('playsinline', ''); // Critical for iOS
+  video.elt.setAttribute('autoplay', '');    // Critical for iOS
+  video.elt.setAttribute('muted', '');       // Critical for iOS
+  video.hide();
 
   // Create default fairy effect color (will be set properly after login)
   wingColor = color(200, 100, 255, 120); 
@@ -432,19 +393,8 @@ function hashStringToColor(str) {
 function draw() {
   background(0);
 
-  // Safety: Prevent drawing/logic if camera isn't flowing yet
-  if (!video || !video.elt || video.elt.readyState < 2) { 
-    fill(255);
-    textAlign(CENTER);
-    textSize(24);
-    text("✨ AWAKENING THE MIRROR ✨", width / 2, height / 2);
-    return;
-  }
-
   // 1. Progress Step Logic
   updateInstructionSteps();
-  
-  if (frameCount % 60 === 0) console.log("Mirror Heartbeat: Active");
 
   if (fullFairyImage) {
     // 🌟 THE FINAL MASTERPIECE 🌟
@@ -469,7 +419,7 @@ function draw() {
       p.color = color(255, 255, 200);
       particles.push(p);
     }
-    if (myPlayerID) drawAttachedPlayerHud(width * 0.5, height * 0.28);
+    drawPlayerHud();
     return; // Stop the regular video logic from running!
   }
 
@@ -479,60 +429,45 @@ function draw() {
   scale(-1, 1);
 
   // Hand Shake velocity and pose logic
-  if (hands.length > 0) {
+  if (Array.isArray(hands) && hands.length > 0 && hands[0]) {
     let hand = hands[0];
-    let wrist = hand.wrist || hand.keypoints[0];
-    let fist = isFist(hand);
+    let landmarks = hand.landmarks || hand.keypoints || (hand.annotations ? hand.annotations.palmBase : null);
+    
+    if (landmarks && landmarks.length > 0) {
+      let wristPoint = landmarks[0];
+      let wx = wristPoint.x !== undefined ? wristPoint.x : (Array.isArray(wristPoint) ? wristPoint[0] : null);
+      let wy = wristPoint.y !== undefined ? wristPoint.y : (Array.isArray(wristPoint) ? wristPoint[1] : null);
+      
+      let fist = isFist(hand);
 
-    if (prevHandX !== null && currentObjectTransformed && !fullFairyImage && !isTransformingSelf) {
-      let speed = abs(wrist.x - prevHandX);
-      handVelocity = lerp(handVelocity, speed, 0.4); // Reacts faster
-  
-      // Shaking an open hand activates the real-time filter aura!
-      if (!fist && handVelocity > 8) {
-        fairyFilterActive = true;
+      if (wx !== null && prevHandX !== null && currentObjectTransformed && !fullFairyImage && !isTransformingSelf) {
+        let speed = abs((width - wx) - prevHandX);
+        handVelocity = lerp(handVelocity, speed, 0.4);
+    
+        // Close your fist to toggle the magic ON
+        if (fist) {
+          fairyFilterActive = true;
+        }
+        
+        // Shake your hand vigorously to turn it OFF
+        if (!fist && handVelocity > 20) {
+          fairyFilterActive = false;
+        }
+
+        if (fist && currentStep === 5) {
+          castBattleSpell();
+        }
       }
-  
-      // Closing your hand into a fist triggers the collective Battle Spell!
-      if (fist && currentStep === 5) {
-        castBattleSpell();
-      }
+      if (wx !== null) prevHandX = (width - wx);
     }
-    prevHandX = wrist.x;
   }
 
-  // REAL-TIME FAIRY TRANSFORMATION (on the live video)
+  // Draw the live video feed (no color tint)
   image(video, 0, 0, width, height);
 
-  if (currentObjectTransformed && fairyFilterActive) {
-    // Replaced expensive tint() with a lightweight overlay rect
-    fill(255, 180, 255, 40);
-    rect(0, 0, width, height);
-  }
-
-  // Basic real-time glowing particles around your "fairy form"
-  if (currentObjectTransformed && fairyFilterActive) {
-    applyFairyGlow();
-  }
-  
   pop(); // End flipped view
 
-  // HUD anchor (body-tracked); drawing happens last so layers don't cover it
-  let hudNx = width * 0.5;
-  let hudNy = height * 0.5;
-  if (poses && poses.length > 0) {
-    let nose = poses[0].nose;
-    if (nose && nose.confidence > 0.1) {
-      hudNx = width - nose.x;
-      hudNy = nose.y;
-    }
-  } else if (hands.length > 0 && hands[0].keypoints) {
-    let wrist = hands[0].keypoints[0];
-    hudNx = width - wrist.x;
-    hudNy = wrist.y;
-  }
-
-  // 2. Round Specific Overlay Logic (Gathering + Duel — playable solo or with friends)
+  // Spirit Orbs during Gathering and Duel (works solo — wand tip collects mana)
   if (currentStep >= 3 && currentStep <= 4) {
     handleSpiritOrbs();
   }
@@ -565,22 +500,8 @@ function draw() {
   
   // Casting Overlay for Regional Spell
   if (isCasting) {
-    // Elegant Magic Spinner instead of a full freeze
-    push();
-    translate(width/2, height/2);
-    rotate(frameCount * 0.1);
-    noFill();
-    strokeWeight(10);
-    stroke(255, 255, 255, 100);
-    ellipse(0, 0, 100, 100);
-    stroke(myFairyColor || color(0, 255, 255));
-    arc(0, 0, 100, 100, 0, PI);
-    pop();
-    
-    fill(255);
-    textAlign(CENTER);
-    textSize(24);
-    text("MAGIC IS CRAFTING...", width/2, height/2 + 80);
+    fill(255, 255, 255, 200);
+    rect(0, 0, width, height);
   }
 
   // Casting Overlay for Full Self Spell
@@ -597,49 +518,57 @@ function draw() {
     pop();
   }
 
-  if (myPlayerID) drawAttachedPlayerHud(hudNx, hudNy);
-} // Correctly end draw() function here
+  // HUD last so wand, particles, frame, and object layer don't paint over it
+  drawPlayerHud();
+}
 
 // REAL-TIME VISUALS: This simulates turning you into a fairy in p5.
 function applyFairyGlow() {
-  if (!poses || poses.length === 0) return;
-  
   fill(wingColor);
   noStroke();
 
-  let pose = poses[0];
-  if (!pose) return;
-
-    // We are INSIDE the push/pop flipped canvas, so x already maps to width-x on screen!
-    let getFx = (kp) => kp.x;
+  if (poses.length > 0) {
+    let person = poses[0];
+    let pose = person.pose || person; // Support both poseNet formats
 
     // Draw Wings on Shoulders
-    let lShoulder = pose.left_shoulder;
-    let rShoulder = pose.right_shoulder;
+    let lShoulder = pose.leftShoulder || pose.keypoints.find(k => k.part === 'leftShoulder');
+    let rShoulder = pose.rightShoulder || pose.keypoints.find(k => k.part === 'rightShoulder');
 
-    if (lShoulder && lShoulder.confidence > 0.1) {
-      drawWing(getFx(lShoulder), lShoulder.y, 1); // 1 = Left Shoulder (Flaring rightwards visually)
+    if (lShoulder && (lShoulder.score || lShoulder.confidence) > 0.1) {
+      let sx = width - map(lShoulder.x, 0, vidW(), 0, width);
+      let sy = map(lShoulder.y, 0, vidH(), 0, height);
+      drawWing(sx, sy, 1);
     }
 
-    if (rShoulder && rShoulder.confidence > 0.1) {
-      drawWing(getFx(rShoulder), rShoulder.y, -1); // -1 = Right Shoulder (Flaring leftwards visually)
+    if (rShoulder && (rShoulder.score || rShoulder.confidence) > 0.1) {
+      let sx = width - map(rShoulder.x, 0, vidW(), 0, width);
+      let sy = map(rShoulder.y, 0, vidH(), 0, height);
+      drawWing(sx, sy, -1);
     }
 
     // Draw Fairy Crown and Ears on the Head
-    let leftEar = pose.left_ear;
-    let rightEar = pose.right_ear;
-    let nose = pose.nose;
+    let leftEar = pose.leftEar || pose.keypoints.find(k => k.part === 'leftEar');
+    let rightEar = pose.rightEar || pose.keypoints.find(k => k.part === 'rightEar');
+    let nose = pose.nose || pose.keypoints.find(k => k.part === 'nose');
 
-    if (nose && nose.confidence > 0.1) {
-      let nx = getFx(nose);
-      let ny = nose.y;
+    if (nose && (nose.score || nose.confidence || 1) > 0.1) {
+      // SCALE COORDINATES
+      let noseX = nose.x || (nose.position ? nose.position.x : 0);
+      let noseY = nose.y || (nose.position ? nose.position.y : 0);
+      let nx = width - map(noseX, 0, vidW(), 0, width);
+      let ny = map(noseY, 0, vidH(), 0, height);
 
       // Draw pointy ears
-      if (leftEar && leftEar.confidence > 0.1) {
-        drawElfEar(getFx(leftEar), leftEar.y, 1);
+      if (leftEar && (leftEar.score || leftEar.confidence) > 0.1) {
+        let ex = width - map(leftEar.x, 0, vidW(), 0, width);
+        let ey = map(leftEar.y, 0, vidH(), 0, height);
+        drawElfEar(ex, ey, 1);
       }
-      if (rightEar && rightEar.confidence > 0.1) {
-        drawElfEar(getFx(rightEar), rightEar.y, -1);
+      if (rightEar && (rightEar.score || rightEar.confidence) > 0.1) {
+        let ex = width - map(rightEar.x, 0, vidW(), 0, width);
+        let ey = map(rightEar.y, 0, vidH(), 0, height);
+        drawElfEar(ex, ey, -1);
       }
 
       // Draw intricate crown
@@ -648,10 +577,20 @@ function applyFairyGlow() {
 
     // Particles flowing down from wings
     if (frameCount % 3 === 0 && lShoulder && rShoulder) {
-      particles.push(new Particle(getFx(lShoulder) + random(-20, 20), lShoulder.y));
-      particles.push(new Particle(getFx(rShoulder) + random(-20, 20), rShoulder.y));
+      let lsx = width - map(lShoulder.x, 0, vidW(), 0, width);
+      let rsx = width - map(rShoulder.x, 0, vidW(), 0, width);
+      particles.push(new Particle(lsx + random(-20, 20), map(lShoulder.y, 0, vidH(), 0, height)));
+      particles.push(new Particle(rsx + random(-20, 20), map(rShoulder.y, 0, vidH(), 0, height)));
     }
-} // Correctly end applyFairyGlow() function here
+  } else {
+    // Fallback if no person found
+    drawWing(width * 0.4, height * 0.4, 1);
+    drawWing(width * 0.6, height * 0.4, -1);
+    for (let i = 0; i < 3; i++) {
+      particles.push(new Particle(random(width * 0.2, width * 0.8), random(height * 0.2, height * 0.6)));
+    }
+  }
+}
 
 function drawWing(x, y, dir) {
   push();
@@ -824,10 +763,10 @@ function drawWand() {
     
     // Core glow at the wand tip
     push();
-    drawingContext.shadowBlur = 15; // Reduced from 30
+    drawingContext.shadowBlur = 30;
     drawingContext.shadowColor = fairyAccentRgba(0.75);
     noStroke();
-    fill(255, 255, 255, 220); 
+    fill(255, 255, 255, 220); // White core within colored glow
     ellipse(x, y, 12, 12);
     pop();
   } else {
@@ -844,17 +783,16 @@ async function castRegionalSpell(objectPrompt) {
   isCasting = true;
   feedback.html("Isolating the object... turning you into a Fairy...");
 
-  // Re-use or Create a dedicated offscreen capture to prevent memory spikes
+  // Capture flipped live feed for the AI
   let offscreen = createGraphics(width, height);
   offscreen.translate(width, 0);
   offscreen.scale(-1, 1);
   offscreen.image(video, 0, 0, width, height);
   let imgBase64 = offscreen.elt.toDataURL();
-  offscreen.remove(); // Dispose immediately after use to free memory
 
   // Updated Prompting for REGIONAL transformation. 
-  // We use Stable Diffusion XL in-painting/segmentation.
-  let fairyAesthetic = "ethereal lighting, cinematic, glittery fairy kingdom style";
+  // We use the chosen kingdom theme
+  let fairyAesthetic = `ethereal lighting, cinematic, glittery ${currentKingdom} kingdom style, theme color ${kingdomColor}`;
   // We only want the wand/object to be generated, NOT the user.
   let targetModel = "google/nano-banana";
 
@@ -880,28 +818,21 @@ async function castRegionalSpell(objectPrompt) {
 
     if (result.output) {
       loadImage(result.output, (incomingImage) => {
-        currentObjectTransformed = incomingImage; 
+        currentObjectTransformed = incomingImage; // The whole transformed image
         isCasting = false;
         feedback.html("Spell successful! Look at your new magical item!");
         
-        // Hide the Wand UI
-        if (spellContainer) spellContainer.style('display', 'none');
-        
-        // Move to Step 3 (Round 1: Gathering)!
+        // Move to Step 4 (Round 1: Gathering)!
         if (currentStep === 2) {
           nextStep(3);
         }
 
         for (let i = 0; i < 60; i++) particles.push(new Particle(random(width), random(height)));
       });
-    } else {
-      isCasting = false;
-      feedback.html("The spirits are busy... try creating your wand again!");
     }
   } catch (error) {
-    console.error("AI Error:", error);
     isCasting = false;
-    feedback.html("Magical interference detected! Try your wand creation again.");
+    feedback.html("The transformation spell failed! Make sure you are holding the object clearly!");
   }
 }
 
@@ -910,91 +841,82 @@ function nextStep(step) {
   if (step <= currentStep) return;
   
   // Clean up old step UI
-  if (step === 3) {
-    if (spellContainer) spellContainer.style('display', 'none');
-  }
-  if (step === 4) {
-    setupCombatUI(); // Prepare buttons for Round 2
-  }
-  if (step === 5) {
-    // Hide combat buttons
-    combatButtons.forEach(b => b.hide());
-  }
+  if (step === 4) setupCombatUI(); // Prepare buttons for Round 2
 
-  // Hide current instruction
+  // Hide current
   let prev = document.getElementById('instr-' + currentStep);
   if (prev) prev.style.display = 'none';
 
-  currentStep = step;
+  // SMALL DELAY to prevent "mixing" together too fast
+  setTimeout(() => {
+    currentStep = step;
 
-  // Show next with animation
-  let next = document.getElementById('instr-' + currentStep);
-  if (next) {
-    next.style.display = 'block';
-    next.classList.add('fly-in');
-    
-    // Trigger special "explosion" effects
-    for (let i = 0; i < 50; i++) {
-        particles.push(new Particle(width / 2, height / 2));
+    // Show next with animation
+    let next = document.getElementById('instr-' + currentStep);
+    if (next) {
+      next.style.display = 'block';
+      next.classList.add('fly-in');
+      
+      // Trigger special "explosion" effects
+      for (let i = 0; i < 50; i++) {
+          particles.push(new Particle(width / 2, height / 2));
+      }
     }
-  }
+  }, 500); 
 }
 
 function setupCombatUI() {
-  let types = ['Fire', 'Water', 'Earth'];
-  types.forEach(type => {
-    let btn = createButton(type);
-    btn.parent(spellContainer);
-    btn.style('padding', '12px 20px');
-    btn.style('border-radius', '30px');
-    btn.style('background', 'rgba(255,255,255,0.1)');
-    btn.style('color', 'white');
-    btn.style('border', '2px solid white');
-    btn.style('cursor', 'pointer');
-    btn.style('font-family', 'Quicksand');
-    btn.mousePressed(() => {
-      mySpellChoice = type;
-      if (myPlayerID) db.ref('players/' + myPlayerID + '/choice').set(mySpellChoice);
-      combatButtons.forEach(b => b.style('background', 'rgba(255,255,255,0.1)'));
-      btn.style('background', 'rgba(255, 100, 255, 0.5)');
-    });
-    combatButtons.push(btn);
-  });
-
-  let megaBtn = createButton("🌟 MEGA SPELL (20 HEALTH) 🌟");
-  megaBtn.parent(spellContainer);
-  megaBtn.style('padding', '12px 24px');
-  megaBtn.style('border-radius', '30px');
-  megaBtn.style('border', 'none');
-  megaBtn.style('background', 'linear-gradient(90deg, #ff0000, #ff00ff)');
-  megaBtn.style('color', 'white');
-  megaBtn.style('font-family', 'Quicksand');
-  megaBtn.style('font-weight', 'bold');
-  megaBtn.style('cursor', 'pointer');
-  megaBtn.mousePressed(() => {
-    isMegaSpell = !isMegaSpell;
-    megaBtn.style('transform', isMegaSpell ? 'scale(1.1)' : 'scale(1)');
-    megaBtn.style('box-shadow', isMegaSpell ? '0 0 20px #ff0000' : 'none');
+  let castBtn = createButton('⚡ CAST SPELL');
+  castBtn.parent(spellContainer);
+  castBtn.style('padding', '10px 24px');
+  castBtn.style('border-radius', '20px');
+  castBtn.style('background', 'rgba(255,0,100,0.5)');
+  castBtn.style('color', 'white');
+  castBtn.style('border', '1px solid rgba(255,255,255,0.4)');
+  castBtn.style('cursor', 'pointer');
+  castBtn.style('font-family', 'Quicksand');
+  castBtn.style('font-size', '1rem');
+  castBtn.mousePressed(() => {
+    if (myPlayerID && spiritHealth > 0) {
+      // Attack: costs 10 spirit from target
+      let elements = document.elementsFromPoint(mouseX, mouseY);
+      elements.forEach(el => {
+        let frame = el.closest('.mirror-frame');
+        if (frame && frame.id && frame.id !== 'local-mirror-container') {
+          // Find the target player
+          for (let pID in remotePlayers) {
+            if (remotePlayers[pID].peerID === frame.id) {
+              let newSpirit = max(0, (remotePlayers[pID].spirit || 100) - 10);
+              db.ref('players/' + pID + '/spirit').set(newSpirit);
+              feedback.html('Spell cast! 💥');
+              for (let i = 0; i < 30; i++) particles.push(new Particle(mouseX, mouseY));
+            }
+          }
+        }
+      });
+    }
   });
 }
 
 function updateInstructionSteps() {
   if (currentStep === 3 && fairyMana >= 50) {
     nextStep(4);
-  } else if (currentStep === 4 && (spiritHealth <= 50 || fairyMana <= 5)) {
-    // Move to Finale if health is low or mana is spent
-    nextStep(5);
   }
 }
 
 function handleSpiritOrbs() {
-  // Spawn Orbs
-  if (frameCount % 60 === 0 && spiritOrbs.length < 5) {
+  // Neon color palette
+  let neonColors = ['#ff00ff', '#00ffff', '#39ff14', '#ff3131', '#fff01f', '#ff6ec7', '#7b68ee'];
+  
+  // Spawn more orbs, faster
+  if (frameCount % 20 === 0 && spiritOrbs.length < 12) {
+    let c = neonColors[floor(random(neonColors.length))];
     spiritOrbs.push({
       x: random(50, width - 50),
       y: random(50, height - 50),
-      size: random(20, 40),
-      seed: random(1000)
+      size: random(15, 35),
+      seed: random(1000),
+      neon: c
     });
   }
 
@@ -1005,9 +927,9 @@ function handleSpiritOrbs() {
     let wave = sin(frameCount * 0.05 + o.seed) * 5;
     
     push();
-    drawingContext.shadowBlur = 15;
-    drawingContext.shadowColor = 'rgba(255, 255, 255, 0.8)';
-    fill(255, 255, 255, 180);
+    drawingContext.shadowBlur = 20;
+    drawingContext.shadowColor = o.neon;
+    fill(o.neon);
     noStroke();
     ellipse(o.x, o.y + wave, o.size);
     pop();
@@ -1058,7 +980,7 @@ function mousePressed() {
 
             if (win) {
               db.ref('players/' + pID + '/spirit').set(max(0, (remotePlayers[pID].spirit || 100) - damage));
-              if (isMegaSpell) feedback.html("ANCIENT POWER BLASTED!");
+              if (isMegaSpell) feedback.html("ANCIENT SPIRIT BLASTED!");
             } else if (draw) {
               db.ref('players/' + pID + '/spirit').set(max(0, (remotePlayers[pID].spirit || 100) - 5));
               spiritHealth = max(0, spiritHealth - 5);
@@ -1133,10 +1055,10 @@ async function castBattleSpell() {
     }
   }
 
-  let battlePrompt = `A high-action, masterpiece cinematic painting of several beautiful fairies engaged in an epic magical battle. ` +
-                     `The winner, ${winner}, is at the center casting a massive blast of ${winnerColor} magic. ` +
-                     `They are flying through a dark, glowing enchanted forest. ` +
-                     `Glitter and fairy dust explosions everywhere. 8k, ethereal lighting, incredibly detailed, dominant colour is ${winnerColor}.`;
+  let battlePrompt = `A high-action, masterpiece cinematic painting of several beautiful fairies engaged in an epic magical battle in the ${currentKingdom} Kingdom. ` +
+                     `The winner, ${winner}, is at the center casting a massive blast of ${kingdomColor} magic. ` +
+                     `They are flying through a dark, glowing enchanted ${currentKingdom} forest. ` +
+                     `Glitter and fairy dust explosions everywhere. 8k, ethereal lighting, incredibly detailed, dominant colour is ${kingdomColor}.`;
 
   let postData = {
     model: "google/nano-banana",
@@ -1192,8 +1114,9 @@ class Particle {
   }
   show() {
     noStroke();
-    // Glowing effect
-    fill(red(this.color), green(this.color), blue(this.color), this.alpha);
+    // Optimized particle draw (assuming HSL or RGB depending on color object)
+    let c = this.color;
+    fill(red(c), green(c), blue(c), this.alpha);
     ellipse(this.x, this.y, this.size);
     
     // Sparkle core
@@ -1204,96 +1127,75 @@ class Particle {
   }
 }
 
-// Heuristic to detect a closed fist
 function isFist(hand) {
   let foldedFingers = 0;
-  let wrist = hand.keypoints[0];
+  let wrist = hand.keypoints ? hand.keypoints[0] : (hand.landmarks ? hand.landmarks[0] : null); 
+  if (!wrist && hand.annotations) wrist = hand.annotations.palmBase[0];
+  if (!wrist) return false;
 
-  let fingers = [
-    { tip: 8, mcp: 5 },   // Index
-    { tip: 12, mcp: 9 },  // Middle
-    { tip: 16, mcp: 13 }, // Ring
-    { tip: 20, mcp: 17 }  // Pinky
-  ];
+  let wx = wrist.x || wrist[0];
+  let wy = wrist.y || wrist[1];
 
-  for (let f of fingers) {
-    let tip = hand.keypoints[f.tip];
-    let mcp = hand.keypoints[f.mcp];
-
-    let dTip = dist(wrist.x, wrist.y, tip.x, tip.y);
-    let dMcp = dist(wrist.x, wrist.y, mcp.x, mcp.y);
-
-    // Mathematical heuristic:
-    // A fully extended finger tip is generally > 2.0x further from the wrist than the knuckle.
-    // A folded finger (closed fist) brings the tip essentially to the same distance as the knuckle (~1.0x to ~1.3x).
-    if (dTip < dMcp * 1.5) {
-      foldedFingers++;
-    }
+  if (hand.annotations) {
+      let tips = [hand.annotations.indexFinger[3], hand.annotations.middleFinger[3], hand.annotations.ringFinger[3], hand.annotations.pinky[3]];
+      let mcps = [hand.annotations.indexFinger[0], hand.annotations.middleFinger[0], hand.annotations.ringFinger[0], hand.annotations.pinky[0]];
+      
+      for (let i=0; i<4; i++) {
+          if (dist(wx, wy, tips[i][0], tips[i][1]) < dist(wx, wy, mcps[i][0], mcps[i][1]) * 1.5) {
+              foldedFingers++;
+          }
+      }
+      return foldedFingers >= 3;
   }
-
-  return foldedFingers >= 3;
+  return false;
 }
 
-function drawAttachedPlayerHud(nx, ny) {
+function drawPlayerHud() {
   if (!myPlayerID) return;
   const hp = constrain(Number(spiritHealth) || 0, 0, 100);
-
-  drawHealthHeartsRow(nx, ny - 168);
+  const cx = width * 0.5;
 
   push();
-  drawingContext.shadowBlur = 8;
-  drawingContext.shadowColor = fairyAccentRgba(0.85);
-  fill(255);
-  textAlign(CENTER, CENTER);
-  textSize(36);
-  textFont('Caveat');
-  text(myPlayerName || 'Fairy', nx, ny - 140);
+  blendMode(BLEND);
+  rectMode(CENTER);
+  noStroke();
+  fill(12, 8, 22, 165);
+  rect(cx, 46, min(width - 20, 300), 90, 14);
+
+  drawHealthHeartsRow(cx, 18, hp);
+
   drawingContext.shadowBlur = 0;
   drawingContext.shadowColor = 'transparent';
-  pop();
+  textAlign(CENTER, CENTER);
+  fill(255, 255, 255, 248);
+  textSize(26);
+  textFont('Caveat');
+  text(myPlayerName || 'Fairy', cx, 42);
 
-  fill(myFairyColor || color(255, 215, 0, 200));
-  noStroke();
-  ellipse(nx, ny - 110, 10, 10);
+  textSize(13);
+  textFont('sans-serif');
+  fill(235, 235, 255, 240);
+  text(`MANA: ${fairyMana} | HEALTH: ${hp}%`, cx, 64);
 
-  push();
-  translate(nx, ny - 180);
-  noStroke();
-  fill(12, 8, 22, 140);
-  rectMode(CENTER);
-  rect(0, 10, 130, 34, 10);
   rectMode(CORNER);
-  textAlign(CENTER, CENTER);
-  textSize(14);
-  textFont('sans-serif');
-  fill(255, 255, 255, 235);
-  text(`MANA: ${fairyMana} | HEALTH: ${hp}%`, 0, 4);
+  const barW = 100;
+  const barLeft = cx - barW * 0.5;
+  const barY = 76;
+  fill(28, 20, 36, 220);
+  rect(barLeft, barY, barW, 8, 4);
+  fill(255, 75, 115, 245);
+  rect(barLeft, barY, map(hp, 0, 100, 0, barW), 8, 4);
 
-  fill(28, 20, 36, 200);
-  rect(-50, 22, 100, 8, 4);
-  fill(255, 70, 110, 235);
-  rect(-50, 22, map(hp, 0, 100, 0, 100), 8, 4);
-  pop();
-
-  push();
-  translate(nx + 60, ny - 135);
-  stroke(255, 255, 255, 100);
-  fill(0, 0, 0, 150);
-  ellipse(0, 0, 30, 30);
-  textAlign(CENTER, CENTER);
-  textSize(10);
-  textFont('sans-serif');
-  fill(255);
-  let choice = (remotePlayers[myPlayerID] && remotePlayers[myPlayerID].choice) ? remotePlayers[myPlayerID].choice : mySpellChoice;
-  text(choice.charAt(0), 0, 0);
+  drawingContext.shadowBlur = 0;
   pop();
 }
 
+// Five hearts above the name / head; each heart represents 20% health.
 function drawHealthHeartsRow(centerX, centerY, healthPct) {
   const segments = 5;
-  const spacing = 22;
+  const spacing = 21;
   textAlign(CENTER, CENTER);
-  textSize(16);
+  textSize(14);
   const chunk = 100 / segments;
   for (let i = 0; i < segments; i++) {
     const fillAmt = constrain((healthPct - i * chunk) / chunk, 0, 1);
@@ -1312,40 +1214,56 @@ function drawHealthHeartsRow(centerX, centerY, healthPct) {
   }
 }
 
-// Find the perfect centroid for the magical object
+// Wand follows ml5's first detected hand only; gentle smoothing applied once per frame
+// (getObjectPosition is called multiple times per draw — lerp must not run on every call).
 function getObjectPosition() {
-  let tx = width / 2;
-  let ty = height / 2;
+  let cx = width / 2;
+  let cy = height / 2;
 
-  if (hands.length > 0) {
-    let sumX = 0;
-    let sumY = 0;
-    let count = min(hands.length, 2); // Max 2 hands supported
-
-    for (let i = 0; i < count; i++) {
-      let wrist = hands[i].wrist || hands[i].keypoints[0];
-
-      if (count === 1) {
-        // If holding with 1 hand, place the item squarely in the center of the palm!
-        let mcp = hands[i].keypoints[9]; // Middle finger knuckle
-        if (mcp) {
-          // Midpoint between wrist and middle knuckle
-          sumX += (width - wrist.x + width - mcp.x) / 2;
-          sumY += (wrist.y + mcp.y) / 2;
-        } else {
-          sumX += (width - wrist.x);
-          sumY += wrist.y;
-        }
-      } else {
-        // If holding with 2 hands, float it perfectly between both of your hands!
-        sumX += (width - wrist.x);
-        sumY += wrist.y;
-      }
+  if (Array.isArray(hands) && hands.length > 0 && hands[0]) {
+    let hand = hands[0];
+    let wristRaw = null;
+    if (hand.annotations && hand.annotations.palmBase) {
+      wristRaw = hand.annotations.palmBase[0];
+    } else if (hand.landmarks && hand.landmarks.length > 0) {
+      wristRaw = hand.landmarks[0];
     }
+    if (wristRaw) {
+      let rawX = Array.isArray(wristRaw) ? wristRaw[0] : (wristRaw.x || 0);
+      let rawY = Array.isArray(wristRaw) ? wristRaw[1] : (wristRaw.y || 0);
+      let wx = map(rawX, 0, vidW(), 0, width);
+      let wy = map(rawY, 0, vidH(), 0, height);
+      let tx = width - wx;
+      let ty = wy;
+      let mcpRaw = null;
+      if (hand.annotations && hand.annotations.middleFinger) {
+        mcpRaw = hand.annotations.middleFinger[0];
+      } else if (hand.landmarks && hand.landmarks.length > 9) {
+        mcpRaw = hand.landmarks[9];
+      }
+      if (mcpRaw) {
+        let mx = map(Array.isArray(mcpRaw) ? mcpRaw[0] : mcpRaw.x, 0, vidW(), 0, width);
+        let my = map(Array.isArray(mcpRaw) ? mcpRaw[1] : mcpRaw.y, 0, vidH(), 0, height);
+        tx = (width - wx + width - mx) / 2;
+        ty = (wy + my) / 2;
+      }
 
-    tx = sumX / count;
-    ty = sumY / count;
+      if (frameCount !== wandSmoothFrame) {
+        wandSmoothFrame = frameCount;
+        if (lastWandX === null || lastWandY === null) {
+          lastWandX = tx;
+          lastWandY = ty;
+        } else {
+          lastWandX = lerp(lastWandX, tx, WAND_TRACK_SMOOTH);
+          lastWandY = lerp(lastWandY, ty, WAND_TRACK_SMOOTH);
+        }
+      }
+      return { x: lastWandX, y: lastWandY };
+    }
   }
 
-  return { x: tx, y: ty };
+  if (lastWandX !== null && lastWandY !== null) {
+    return { x: lastWandX, y: lastWandY };
+  }
+  return { x: cx, y: cy };
 }
