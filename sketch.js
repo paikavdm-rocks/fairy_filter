@@ -514,12 +514,17 @@ function draw() {
   } else {
     // Step 1: Branding/Background only
     push();
-    fill(20, 10, 40);
+    fill(10, 5, 25);
     rect(0, 0, width, height);
-    textAlign(CENTER);
-    textSize(24);
+    textAlign(CENTER, CENTER);
+    textFont('Cinzel Decorative');
+    textSize(28);
     fill(255, 121, 198);
-    text("PLEASE SET YOUR NAME TO BEGIN 🧚", width/2, height/2);
+    text("FAIRYTOPIA BATTLE", width/2, height/2 - 20);
+    textFont('Quicksand');
+    textSize(16);
+    fill(200, 200, 255);
+    text("PLEASE ENTER YOUR NAME BELOW TO BEGIN", width/2, height/2 + 30);
     pop();
   }
 
