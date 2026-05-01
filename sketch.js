@@ -804,6 +804,12 @@ function collectSpell(spellType) {
 }
 
 function renderSpellInventory() {
+  // Update HTML overlay counts
+  Object.keys(spellInventory).forEach(type => {
+    let el = document.getElementById('count-' + type);
+    if (el) el.innerText = spellInventory[type];
+  });
+
   if (!spellInventoryDiv) return;
   spellInventoryDiv.html('');
   Object.keys(elementalSpells).forEach((spellType) => {
@@ -1047,34 +1053,28 @@ function drawPlayerHud() {
   blendMode(BLEND);
   rectMode(CENTER);
   noStroke();
-  fill(12, 8, 22, 165);
-  rect(cx, 46, min(width - 20, 300), 90, 14);
+  
+  // Minimalist health panel above head (top center)
+  fill(12, 8, 22, 160);
+  rect(cx, 35, 180, 60, 30);
 
   drawHealthHeartsRow(cx, 18, hp);
 
-  drawingContext.shadowBlur = 0;
-  drawingContext.shadowColor = 'transparent';
   textAlign(CENTER, CENTER);
-  fill(255, 255, 255, 248);
-  textSize(26);
+  fill(255, 255, 255, 240);
+  textSize(22);
   textFont('Caveat');
-  text(myPlayerName || 'Fairy', cx, 42);
-
-  textSize(13);
-  textFont('sans-serif');
-  fill(235, 235, 255, 240);
-  text(`SPELLS: ${totalCollectedSpells()} | HEALTH: ${hp}%`, cx, 64);
+  text(myPlayerName || 'Fairy', cx, 38);
 
   rectMode(CORNER);
   const barW = 100;
   const barLeft = cx - barW * 0.5;
-  const barY = 76;
-  fill(28, 20, 36, 220);
-  rect(barLeft, barY, barW, 8, 4);
+  const barY = 52;
+  fill(28, 20, 36, 200);
+  rect(barLeft, barY, barW, 6, 3);
   fill(255, 75, 115, 245);
-  rect(barLeft, barY, map(hp, 0, 100, 0, barW), 8, 4);
+  rect(barLeft, barY, map(hp, 0, 100, 0, barW), 6, 3);
 
-  drawingContext.shadowBlur = 0;
   pop();
 }
 

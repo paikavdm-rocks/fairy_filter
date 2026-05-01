@@ -81,10 +81,23 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
-        .fly-in { animation: flyIn 0.8s ease-out forwards; }
-        @keyframes flyIn { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .instructions {
+            margin: 15px auto; max-width: 600px; background: var(--glass); backdrop-filter: blur(10px);
+            padding: 15px; border-radius: 20px; border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+        .instruction-step { font-size: 1rem; margin: 0; color: #ffccff; }
+        
+        .spell-inventory-bar {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: var(--glass); backdrop-filter: blur(15px); border: 2px solid var(--accent);
+            border-radius: 50px; padding: 10px 30px; display: flex; gap: 20px;
+            box-shadow: 0 0 30px rgba(255, 121, 198, 0.3); z-index: 500;
+        }
+        .spell-item { display: flex; align-items: center; gap: 8px; font-size: 1.2rem; font-weight: bold; }
+        .spell-count { background: var(--accent); color: black; border-radius: 50%; width: 24px; height: 24px; 
+                       display: flex; align-items: center; justify-content: center; font-size: 0.8rem; }
 
-        h1 { font-family: 'Cinzel Decorative', cursive; margin-top: 20px; letter-spacing: 4px; text-shadow: 0 0 20px var(--accent); }
         #loading-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: #000; color: #ff79c6; display: flex; align-items: center;
@@ -113,11 +126,27 @@
     </div>
 
     <h1>Fairytopia Battle</h1>
+    
+    <div class="instructions">
+        <p id="instr-1" class="instruction-step fly-in">✨ Step 1: Set your Fairy Name to enter the arena.</p>
+        <p id="instr-2" class="instruction-step" style="display: none;">✨ Step 2: Conjure your magical item and turn it into your wand.</p>
+        <p id="instr-3" class="instruction-step" style="display: none;">✨ Step 3: Use your index finger to collect 3 elemental spell orbs from the sky!</p>
+        <p id="instr-4" class="instruction-step" style="display: none;">✨ Step 4: The Battle begins! Select a spell from your inventory and cast it at your rivals!</p>
+        <p id="instr-5" class="instruction-step" style="display: none;">✨ FINAL STEP: Close your hand into a tight fist to unleash your ultimate Fairy power!</p>
+    </div>
+
     <div id="p5-container"></div>
     <div id="controls-container"></div>
 
     <div id="mirrors-gallery">
         <!-- Remote players appear here -->
+    </div>
+
+    <!-- Persistent Spell Inventory Bar -->
+    <div id="spell-inventory-hud" class="spell-inventory-bar">
+        <div class="spell-item">💧 <span id="count-Water" class="spell-count">0</span></div>
+        <div class="spell-item">🔥 <span id="count-Fire" class="spell-count">0</span></div>
+        <div class="spell-item">🌬️ <span id="count-Air" class="spell-count">0</span></div>
     </div>
 
     <script src="sketch.js"></script>
