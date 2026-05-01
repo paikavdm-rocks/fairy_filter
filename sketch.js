@@ -524,7 +524,7 @@ function draw() {
     fill(255, 255, 255);
     drawingContext.shadowBlur = 20;
     drawingContext.shadowColor = '#ff79c6';
-    text("FAIRYTOPIA BATTLE", width/2, height/2 - 20);
+    text("FAIRYTOPIA BATTLEFIELD", width/2, height/2 - 20);
     
     drawingContext.shadowBlur = 10;
     drawingContext.shadowColor = '#8be9fd';
