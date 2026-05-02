@@ -168,6 +168,9 @@ function loginWithGoogle() {
   auth.signInWithPopup(provider).catch(err => alert("Google Login Failed: " + err.message));
 }
 
+window.loginWithEmail = loginWithEmail;
+window.loginWithGoogle = loginWithGoogle;
+
 // Authentication State Listener
 function addRemoteVideo(remotePeerID, stream) {
   if (document.getElementById(remotePeerID)) return; // Don't duplicate rendering displays!

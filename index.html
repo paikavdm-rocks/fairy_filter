@@ -134,7 +134,14 @@
             <input type="email" id="auth-email" placeholder="Magical Email">
             <input type="password" id="auth-password" placeholder="Secret Password">
             <button class="btn-primary" onclick="window.loginWithEmail()">ENTER ARENA</button>
-            <p style="font-size: 0.8rem; margin-top: 15px; opacity: 0.5;">Enter email/password. New spirits will be registered automatically.</p>
+            <div style="margin: 15px 0; opacity: 0.4; font-size: 0.8rem; display: flex; align-items: center; gap: 10px;">
+                <div style="flex: 1; height: 1px; background: white;"></div> OR <div style="flex: 1; height: 1px; background: white;"></div>
+            </div>
+            <button class="btn-primary" style="background: white; color: #444; border: 1px solid #ddd; margin-top: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.15);" onclick="window.loginWithGoogle()">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width: 18px; vertical-align: middle; margin-right: 10px;">
+                Sign in with Google
+            </button>
+            <p style="font-size: 0.8rem; margin-top: 15px; opacity: 0.5;">Enter email/password or use Google. New spirits will be registered automatically.</p>
         </div>
     </div>
 
