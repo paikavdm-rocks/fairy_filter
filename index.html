@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fairytopia Battle Game | The Final Duel</title>
-    
+
     <!-- P5.js & ML5.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.js"></script>
     <script src="https://unpkg.com/ml5@1/dist/ml5.min.js"></script>
@@ -16,7 +17,9 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Quicksand:wght@400;700&family=Caveat:wght@600&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Quicksand:wght@400;700&family=Caveat:wght@600&display=swap"
+        rel="stylesheet">
 
     <style>
         :root {
@@ -29,126 +32,319 @@
         }
 
         body {
-            margin: 0; padding: 0;
+            margin: 0;
+            padding: 0;
             background: url('fairy_bg.png') no-repeat center center fixed;
             background-size: cover;
-            color: white; font-family: 'Quicksand', sans-serif;
-            display: flex; flex-direction: column; align-items: center; min-height: 100vh;
+            color: white;
+            font-family: 'Quicksand', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
         }
 
         #login-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(10, 5, 20, 0.95); backdrop-filter: blur(15px);
-            display: flex; align-items: center; justify-content: center; z-index: 1000000;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 5, 20, 0.95);
+            backdrop-filter: blur(15px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000000;
         }
 
 
         .auth-box {
-            background: #111; padding: 40px; border-radius: 30px; border: 2px solid var(--accent);
-            text-align: center; max-width: 400px; width: 90%; box-shadow: 0 0 50px rgba(255, 121, 198, 0.2);
+            background: #111;
+            padding: 40px;
+            border-radius: 30px;
+            border: 2px solid var(--accent);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 0 50px rgba(255, 121, 198, 0.2);
         }
 
         .auth-box input {
-            width: 100%; padding: 12px; margin: 10px 0; border-radius: 12px;
-            background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: white; box-sizing: border-box;
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            color: white;
+            box-sizing: border-box;
         }
 
         .btn-primary {
-            padding: 12px 24px; border-radius: 12px; background: var(--accent);
-            color: white; font-weight: bold; cursor: pointer; border: none; font-size: 1rem; width: 100%;
+            padding: 12px 24px;
+            border-radius: 12px;
+            background: var(--accent);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            font-size: 1rem;
+            width: 100%;
             margin-top: 10px;
         }
 
         #p5-container {
             position: relative;
-            margin-top: 30px; border: 10px solid var(--accent); border-radius: 20px;
-            box-shadow: 0 0 40px rgba(255, 121, 198, 0.3); overflow: hidden; background: black;
-            width: fit-content; margin-left: auto; margin-right: auto;
+            margin-top: 30px;
+            border: 10px solid var(--accent);
+            border-radius: 20px;
+            box-shadow: 0 0 40px rgba(255, 121, 198, 0.3);
+            overflow: hidden;
+            background: black;
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
         }
 
 
         #controls-container {
-            width: 100%; max-width: 800px; margin-top: 20px; display: flex; flex-direction: column; align-items: center;
+            width: 100%;
+            max-width: 800px;
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         #mirrors-gallery {
-            display: flex; flex-wrap: wrap; justify-content: center;
-            gap: 20px; width: 100%; max-width: 1600px; padding: 20px;
-            opacity: 0; transition: opacity 1s; height: 0; overflow: hidden;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            width: 100%;
+            max-width: 1600px;
+            padding: 20px;
+            opacity: 0;
+            transition: opacity 1s;
+            height: 0;
+            overflow: hidden;
         }
 
         .mirror-frame {
-            flex: 0 1 320px; min-width: 280px;
-            background: rgba(15, 10, 30, 0.85); border: 2px solid var(--accent); padding: 12px; border-radius: 20px;
+            flex: 0 1 320px;
+            min-width: 280px;
+            background: rgba(15, 10, 30, 0.85);
+            border: 2px solid var(--accent);
+            padding: 12px;
+            border-radius: 20px;
             box-shadow: 0 0 25px rgba(255, 121, 198, 0.3);
-            transform: scale(0.95); transition: all 0.3s ease-out;
+            transform: scale(0.95);
+            transition: all 0.3s ease-out;
         }
-        .mirror-frame:hover { transform: scale(1); border-color: #00ffff; }
+
+        .mirror-frame:hover {
+            transform: scale(1);
+            border-color: #00ffff;
+        }
 
         .instructions {
-            position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
-            width: 90%; max-width: 500px; background: rgba(20, 10, 40, 0.7); backdrop-filter: blur(8px);
-            padding: 8px 15px; border-radius: 15px; border: 1px solid var(--accent);
-            text-align: center; z-index: 1000; pointer-events: none;
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 500px;
+            background: rgba(20, 10, 40, 0.7);
+            backdrop-filter: blur(8px);
+            padding: 8px 15px;
+            border-radius: 15px;
+            border: 1px solid var(--accent);
+            text-align: center;
+            z-index: 1000;
+            pointer-events: none;
         }
 
 
-        .instruction-step { font-size: 1.1rem; margin: 5px 0; color: #ffccff; font-weight: bold; }
+        .instruction-step {
+            font-size: 1.1rem;
+            margin: 5px 0;
+            color: #ffccff;
+            font-weight: bold;
+        }
 
-        
+
         .spell-inventory-bar {
-            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-            background: rgba(12, 5, 20, 0.95); backdrop-filter: blur(20px); border: 3px solid var(--accent);
-            border-radius: 50px; padding: 15px 40px; display: flex; gap: 30px;
-            box-shadow: 0 0 40px rgba(255, 121, 198, 0.6); z-index: 9999;
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(12, 5, 20, 0.95);
+            backdrop-filter: blur(20px);
+            border: 3px solid var(--accent);
+            border-radius: 50px;
+            padding: 15px 40px;
+            display: flex;
+            gap: 30px;
+            box-shadow: 0 0 40px rgba(255, 121, 198, 0.6);
+            z-index: 9999;
             transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        .spell-inventory-bar:hover { transform: translateX(-50%) scale(1.05); }
-        .spell-item { display: flex; align-items: center; gap: 12px; font-size: 1.5rem; font-weight: bold; color: white; cursor: pointer; transition: all 0.2s; padding: 5px 10px; border-radius: 20px; }
-        .spell-item:hover { background: rgba(255, 255, 255, 0.1); }
-        .spell-item.selected { background: rgba(255, 255, 255, 0.2); box-shadow: inset 0 0 10px var(--accent); border: 1px solid var(--accent); }
-        .spell-count { background: var(--accent); color: black; border-radius: 12px; padding: 2px 10px;
-                       min-width: 20px; text-align: center; font-size: 1rem; font-weight: 900; box-shadow: 0 0 10px var(--accent); }
+
+        .spell-inventory-bar:hover {
+            transform: translateX(-50%) scale(1.05);
+        }
+
+        .spell-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            padding: 5px 10px;
+            border-radius: 20px;
+        }
+
+        .spell-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .spell-item.selected {
+            background: rgba(255, 255, 255, 0.2);
+            box-shadow: inset 0 0 10px var(--accent);
+            border: 1px solid var(--accent);
+        }
+
+        .spell-count {
+            background: var(--accent);
+            color: black;
+            border-radius: 12px;
+            padding: 2px 10px;
+            min-width: 20px;
+            text-align: center;
+            font-size: 1rem;
+            font-weight: 900;
+            box-shadow: 0 0 10px var(--accent);
+        }
 
 
         #loading-screen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; color: #ff79c6; display: flex; align-items: center;
-            justify-content: center; font-size: 1.5rem; z-index: 2000;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            color: #ff79c6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            z-index: 2000;
         }
-        .gem-container { display: flex; gap: 30px; justify-content: center; margin: 20px 0; }
-        .gem { width: 80px; height: 80px; cursor: pointer; transition: all 0.3s; filter: drop-shadow(0 0 10px rgba(255,255,255,0.2)); }
-        .gem:hover { transform: scale(1.3) rotate(15deg); filter: drop-shadow(0 0 20px white); }
-        .gem-label { font-family: 'Cinzel Decorative'; font-size: 1.2rem; margin-top: 10px; color: #fff; }
+
+        .gem-container {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .gem {
+            width: 80px;
+            height: 80px;
+            cursor: pointer;
+            transition: all 0.3s;
+            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.2));
+        }
+
+        .gem:hover {
+            transform: scale(1.3) rotate(15deg);
+            filter: drop-shadow(0 0 20px white);
+        }
+
+        .gem-label {
+            font-family: 'Cinzel Decorative';
+            font-size: 1.2rem;
+            margin-top: 10px;
+            color: #fff;
+        }
+
         .account-bar {
-            display: flex; gap: 15px; justify-content: center; margin: 10px 0;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 10px 0;
         }
+
         .btn-outline {
-            padding: 8px 16px; border-radius: 20px; background: transparent;
-            color: var(--accent); border: 1px solid var(--accent); cursor: pointer; font-family: 'Quicksand'; font-weight: bold;
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: transparent;
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            cursor: pointer;
+            font-family: 'Quicksand';
+            font-weight: bold;
             transition: all 0.3s;
         }
-        .btn-outline:hover { background: var(--accent); color: #000; }
-        
-        #countdown-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            display: none; align-items: center; justify-content: center;
-            font-size: 15rem; font-family: 'Cinzel Decorative'; color: var(--accent);
-            text-shadow: 0 0 50px var(--accent); z-index: 10001; pointer-events: none;
+
+        .btn-outline:hover {
+            background: var(--accent);
+            color: #000;
         }
-        .count-pulse { animation: countPulse 1s ease-out; }
-        @keyframes countPulse { 0% { transform: scale(3); opacity: 0; } 50% { opacity: 1; } 100% { transform: scale(1); opacity: 0; } }
+
+        #countdown-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 15rem;
+            font-family: 'Cinzel Decorative';
+            color: var(--accent);
+            text-shadow: 0 0 50px var(--accent);
+            z-index: 10001;
+            pointer-events: none;
+        }
+
+        .count-pulse {
+            animation: countPulse 1s ease-out;
+        }
+
+        @keyframes countPulse {
+            0% {
+                transform: scale(3);
+                opacity: 0;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 0;
+            }
+        }
     </style>
 
     <script>
 
 
         console.log("Fairy Filter Booting...");
-        window.onerror = function(msg, url, line) {
+        window.onerror = function (msg, url, line) {
             console.error("Magical Error: " + msg + " at " + line);
         };
     </script>
 </head>
+
 <body>
     <div id="loading-screen">✨ Awakening the Arena...</div>
     <div id="countdown-overlay"></div>
@@ -156,18 +352,26 @@
     <div id="login-overlay">
         <div class="auth-box">
             <h1>Fairytopia Battlefield</h1>
-            <p style="opacity: 0.9; margin-bottom: 20px; font-family: 'Caveat', cursive; font-size: 1.5rem; color: var(--accent); text-shadow: 0 0 10px rgba(255, 121, 198, 0.3);">Created by Paika van der Maas</p>
+            <p
+                style="opacity: 0.9; margin-bottom: 20px; font-family: 'Caveat', cursive; font-size: 1.5rem; color: var(--accent); text-shadow: 0 0 10px rgba(255, 121, 198, 0.3);">
+                Created by Paika van der Maas</p>
             <input type="email" id="auth-email" placeholder="Magical Email">
             <input type="password" id="auth-password" placeholder="Secret Password">
             <button class="btn-primary" onclick="window.loginWithEmail()">ENTER ARENA</button>
-            <div style="margin: 15px 0; opacity: 0.4; font-size: 0.8rem; display: flex; align-items: center; gap: 10px;">
-                <div style="flex: 1; height: 1px; background: white;"></div> OR <div style="flex: 1; height: 1px; background: white;"></div>
+            <div
+                style="margin: 15px 0; opacity: 0.4; font-size: 0.8rem; display: flex; align-items: center; gap: 10px;">
+                <div style="flex: 1; height: 1px; background: white;"></div> OR <div
+                    style="flex: 1; height: 1px; background: white;"></div>
             </div>
-            <button class="btn-primary" style="background: white; color: #444; border: 1px solid #ddd; margin-top: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.15);" onclick="window.loginWithGoogle()">
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width: 18px; vertical-align: middle; margin-right: 10px;">
+            <button class="btn-primary"
+                style="background: white; color: #444; border: 1px solid #ddd; margin-top: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.15);"
+                onclick="window.loginWithGoogle()">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                    style="width: 18px; vertical-align: middle; margin-right: 10px;">
                 Sign in with Google
             </button>
-            <p style="font-size: 0.8rem; margin-top: 15px; opacity: 0.5;">Enter email/password or use Google. New spirits will be registered automatically.</p>
+            <p style="font-size: 0.8rem; margin-top: 15px; opacity: 0.5;">Enter email/password or use Google. New
+                spirits will be registered automatically.</p>
         </div>
     </div>
 
@@ -177,14 +381,19 @@
             <button class="btn-outline" onclick="firebase.auth().signOut()">Logout</button>
         </div>
 
-        <h1 style="font-size: 4rem; margin: 20px 0; color: #fff; text-shadow: 0 0 15px #ff79c6, 0 0 30px #000; font-family: 'Cinzel Decorative', cursive;">Fairytopia Battlefield</h1>
+        <h1
+            style="font-size: 4rem; margin: 20px 0; color: #fff; text-shadow: 0 0 15px #ff79c6, 0 0 30px #000; font-family: 'Cinzel Decorative', cursive;">
+            Fairytopia Battlefield</h1>
 
         <div id="p5-container">
             <div class="instructions">
                 <p id="instr-1" class="instruction-step fly-in">✨ Step 1: Set your Fairy Name to enter the arena.</p>
-                <p id="instr-2" class="instruction-step" style="display: none;">✨ Step 2: Choose your magical Kingdom to inherit its power!</p>
-                <p id="instr-3" class="instruction-step" style="display: none;">✨ Step 3: Conjure your magical item and turn it into your wand.</p>
-                <p id="instr-4" class="instruction-step" style="display: none;">✨ Step 4: Use your index finger to collect 3 elemental spell orbs from the sky!</p>
+                <p id="instr-2" class="instruction-step" style="display: none;">✨ Step 2: Choose your magical Kingdom to
+                    inherit its power!</p>
+                <p id="instr-3" class="instruction-step" style="display: none;">✨ Step 3: Conjure your magical item and
+                    turn it into your wand.</p>
+                <p id="instr-4" class="instruction-step" style="display: none;">✨ Step 4: Use your index finger to
+                    collect 3 elemental spell orbs from the sky!</p>
                 <p id="instr-5" class="instruction-step" style="display: none;">
                     ✨ Step 5: The Battle begins! Cast a spell at your rivals!<br>
                     <span style="font-size: 1rem; color: #fff; opacity: 0.8; font-family: 'Quicksand';">
@@ -194,24 +403,35 @@
             </div>
 
             <!-- Overlaid Controls -->
-            <div id="controls-container" style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); width: 100%; display: flex; flex-direction: column; align-items: center; z-index: 1001;">
-                <div id="kingdom-selection" style="display: none; flex-direction: column; align-items: center; background: rgba(0,0,0,0.7); padding: 20px; border-radius: 30px; backdrop-filter: blur(10px); border: 2px solid var(--accent);">
-                    <p style="font-family: 'Cinzel Decorative'; font-size: 1.5rem; color: #fff; margin-bottom: 20px;">Choose Your Kingdom</p>
+            <div id="controls-container"
+                style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); width: 100%; display: flex; flex-direction: column; align-items: center; z-index: 1001;">
+                <div id="kingdom-selection"
+                    style="display: none; flex-direction: column; align-items: center; background: rgba(0,0,0,0.7); padding: 20px; border-radius: 30px; backdrop-filter: blur(10px); border: 2px solid var(--accent);">
+                    <p style="font-family: 'Cinzel Decorative'; font-size: 1.5rem; color: #fff; margin-bottom: 20px;">
+                        Choose Your Kingdom</p>
                     <div class="gem-container">
                         <div class="gem-option" onclick="window.selectKingdom('Ruby', '#ff4b73')">
-                            <div id="gem-ruby" class="gem" style="background: radial-gradient(circle, #ff4b73, #800000); border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; box-shadow: 0 0 20px #ff4b73;"></div>
+                            <div id="gem-ruby" class="gem"
+                                style="background: radial-gradient(circle, #ff4b73, #800000); border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; box-shadow: 0 0 20px #ff4b73;">
+                            </div>
                             <span class="gem-label">Ruby</span>
                         </div>
                         <div class="gem-option" onclick="window.selectKingdom('Emerald', '#50fa7b')">
-                            <div id="gem-emerald" class="gem" style="background: radial-gradient(circle, #50fa7b, #004d00); border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; box-shadow: 0 0 20px #50fa7b;"></div>
+                            <div id="gem-emerald" class="gem"
+                                style="background: radial-gradient(circle, #50fa7b, #004d00); border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; box-shadow: 0 0 20px #50fa7b;">
+                            </div>
                             <span class="gem-label">Emerald</span>
                         </div>
                         <div class="gem-option" onclick="window.selectKingdom('Sapphire', '#8be9fd')">
-                            <div id="gem-sapphire" class="gem" style="background: radial-gradient(circle, #8be9fd, #003366); border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; box-shadow: 0 0 20px #8be9fd;"></div>
+                            <div id="gem-sapphire" class="gem"
+                                style="background: radial-gradient(circle, #8be9fd, #003366); border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; box-shadow: 0 0 20px #8be9fd;">
+                            </div>
                             <span class="gem-label">Sapphire</span>
                         </div>
                         <div class="gem-option" onclick="window.selectKingdom('Amethyst', '#bd93f9')">
-                            <div id="gem-amethyst" class="gem" style="background: radial-gradient(circle, #bd93f9, #4b0082); border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; box-shadow: 0 0 20px #bd93f9;"></div>
+                            <div id="gem-amethyst" class="gem"
+                                style="background: radial-gradient(circle, #bd93f9, #4b0082); border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; box-shadow: 0 0 20px #bd93f9;">
+                            </div>
                             <span class="gem-label">Amethyst</span>
                         </div>
                     </div>
@@ -226,12 +446,16 @@
 
     <!-- Persistent Spell Inventory Bar -->
     <div id="spell-inventory-hud" class="spell-inventory-bar" style="display: none;">
-        <div id="item-Ice" class="spell-item" onclick="window.selectSpell('Ice')">❄️ <span id="count-Ice" class="spell-count">0</span></div>
-        <div id="item-Fire" class="spell-item" onclick="window.selectSpell('Fire')">🔥 <span id="count-Fire" class="spell-count">0</span></div>
-        <div id="item-Air" class="spell-item" onclick="window.selectSpell('Air')">🌬️ <span id="count-Air" class="spell-count">0</span></div>
+        <div id="item-Ice" class="spell-item" onclick="window.selectSpell('Ice')">❄️ <span id="count-Ice"
+                class="spell-count">0</span></div>
+        <div id="item-Fire" class="spell-item" onclick="window.selectSpell('Fire')">🔥 <span id="count-Fire"
+                class="spell-count">0</span></div>
+        <div id="item-Air" class="spell-item" onclick="window.selectSpell('Air')">🌬️ <span id="count-Air"
+                class="spell-count">0</span></div>
     </div>
 
 
     <script src="sketch.js"></script>
 </body>
+
 </html>

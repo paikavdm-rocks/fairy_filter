@@ -131,6 +131,7 @@ function initFirebaseListeners() {
     if (user) {
       // User is fully authenticated globally!
       document.getElementById('login-overlay').style.display = 'none';
+      document.getElementById('game-container').style.display = 'flex';
       myPlayerID = user.uid;
       myPlayerName = user.email ? user.email.split('@')[0] : "Fairy"; 
       
