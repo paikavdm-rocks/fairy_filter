@@ -386,10 +386,11 @@ function setup() {
     }
   });
 
-  function selectKingdom(name, clr) {
+function selectKingdom(name, clr) {
   currentKingdom = name;
   kingdomColor = clr;
   myFairyColor = color(clr);
+  fairyFilterActive = true; // Ensure visuals start immediately!
   
   if (myPlayerID) {
     db.ref('players/' + myPlayerID + '/kingdom').set(name);
@@ -401,6 +402,7 @@ function setup() {
   nextStep(3);
 }
 window.selectKingdom = selectKingdom;
+
 
   spellContainer = createDiv();
   spellContainer.style('display', 'none'); // Hidden until named
