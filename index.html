@@ -59,9 +59,12 @@
         }
 
         #p5-container {
+            position: relative;
             margin-top: 30px; border: 10px solid var(--accent); border-radius: 20px;
             box-shadow: 0 0 40px rgba(255, 121, 198, 0.3); overflow: hidden; background: black;
+            width: fit-content; margin-left: auto; margin-right: auto;
         }
+
 
         #controls-container {
             width: 100%; max-width: 800px; margin-top: 20px; display: flex; flex-direction: column; align-items: center;
@@ -82,10 +85,12 @@
         .mirror-frame:hover { transform: scale(1); border-color: #00ffff; }
 
         .instructions {
-            margin: 15px auto; max-width: 600px; background: var(--glass); backdrop-filter: blur(10px);
-            padding: 15px; border-radius: 20px; border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            text-align: center;
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            width: 80%; max-width: 600px; background: rgba(20, 10, 40, 0.85); backdrop-filter: blur(15px);
+            padding: 15px; border-radius: 25px; border: 2px solid var(--accent); box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            text-align: center; z-index: 1000; pointer-events: none;
         }
+
         .instruction-step { font-size: 1.5rem; margin: 10px 0; color: #ffccff; font-weight: bold; }
         
         .spell-inventory-bar {
@@ -155,48 +160,48 @@
         </div>
     </div>
 
-    <h1 style="font-size: 4rem; margin: 10px 0; color: #fff; text-shadow: 0 0 15px #ff79c6, 0 0 30px #000; font-family: 'Cinzel Decorative', cursive;">Fairytopia Battlefield</h1>
-    
-    <div class="instructions" style="background: rgba(40, 10, 60, 0.85); border: 2px solid var(--accent); padding: 20px; border-radius: 25px;">
-        <p id="instr-1" class="instruction-step fly-in">✨ Step 1: Set your Fairy Name to enter the arena.</p>
-        <p id="instr-2" class="instruction-step" style="display: none;">✨ Step 2: Choose your magical Kingdom to inherit its power!</p>
-        <p id="instr-3" class="instruction-step" style="display: none;">✨ Step 3: Conjure your magical item and turn it into your wand.</p>
-        <p id="instr-4" class="instruction-step" style="display: none;">✨ Step 4: Use your index finger to collect 3 elemental spell orbs from the sky!</p>
-        <p id="instr-5" class="instruction-step" style="display: none;">
-            ✨ Step 5: The Battle begins! Cast a spell at your rivals!<br>
-            <span style="font-size: 1rem; color: #fff; opacity: 0.8; font-family: 'Quicksand';">
-                (❄️ Ice: Freezes Spells | 🔥 Fire: Burns Health | 🌬️ Air: Stops Orbs)
-            </span>
-        </p>
-        <p id="instr-5" class="instruction-step" style="display: none;">✨ FINAL STEP: Close your hand into a tight fist to unleash your ultimate Fairy power!</p>
-    </div>
+    <div id="p5-container">
+        <!-- Overlay Arena Title -->
+        <h1 style="position: absolute; top: 10px; width: 100%; text-align: center; font-size: 2.5rem; color: #fff; text-shadow: 0 0 15px #ff79c6, 0 0 30px #000; font-family: 'Cinzel Decorative', cursive; z-index: 100; pointer-events: none; margin: 0;">Fairytopia Battlefield</h1>
 
-    <!-- Move controls above video -->
-    <div id="controls-container">
-        <div id="kingdom-selection" style="display: none; flex-direction: column; align-items: center; margin-top: 20px;">
-            <p style="font-family: 'Cinzel Decorative'; font-size: 1.5rem; color: #fff; margin-bottom: 20px;">Choose Your Kingdom</p>
-            <div class="gem-container">
-                <div class="gem-option" onclick="window.selectKingdom('Ruby', '#ff4b73')">
-                    <div id="gem-ruby" class="gem" style="background: radial-gradient(circle, #ff4b73, #800000); border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; box-shadow: 0 0 20px #ff4b73;"></div>
-                    <span class="gem-label">Ruby</span>
-                </div>
-                <div class="gem-option" onclick="window.selectKingdom('Emerald', '#50fa7b')">
-                    <div id="gem-emerald" class="gem" style="background: radial-gradient(circle, #50fa7b, #004d00); border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; box-shadow: 0 0 20px #50fa7b;"></div>
-                    <span class="gem-label">Emerald</span>
-                </div>
-                <div class="gem-option" onclick="window.selectKingdom('Sapphire', '#8be9fd')">
-                    <div id="gem-sapphire" class="gem" style="background: radial-gradient(circle, #8be9fd, #003366); border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; box-shadow: 0 0 20px #8be9fd;"></div>
-                    <span class="gem-label">Sapphire</span>
-                </div>
-                <div class="gem-option" onclick="window.selectKingdom('Amethyst', '#bd93f9')">
-                    <div id="gem-amethyst" class="gem" style="background: radial-gradient(circle, #bd93f9, #4b0082); border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; box-shadow: 0 0 20px #bd93f9;"></div>
-                    <span class="gem-label">Amethyst</span>
+        <div class="instructions">
+            <p id="instr-1" class="instruction-step fly-in">✨ Step 1: Set your Fairy Name to enter the arena.</p>
+            <p id="instr-2" class="instruction-step" style="display: none;">✨ Step 2: Choose your magical Kingdom to inherit its power!</p>
+            <p id="instr-3" class="instruction-step" style="display: none;">✨ Step 3: Conjure your magical item and turn it into your wand.</p>
+            <p id="instr-4" class="instruction-step" style="display: none;">✨ Step 4: Use your index finger to collect 3 elemental spell orbs from the sky!</p>
+            <p id="instr-5" class="instruction-step" style="display: none;">
+                ✨ Step 5: The Battle begins! Cast a spell at your rivals!<br>
+                <span style="font-size: 1rem; color: #fff; opacity: 0.8; font-family: 'Quicksand';">
+                    (❄️ Ice: Freezes Spells | 🔥 Fire: Burns Health | 🌬️ Air: Stops Orbs)
+                </span>
+            </p>
+        </div>
+
+        <!-- Overlaid Controls -->
+        <div id="controls-container" style="position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); width: 100%; display: flex; flex-direction: column; align-items: center; z-index: 1001;">
+            <div id="kingdom-selection" style="display: none; flex-direction: column; align-items: center; background: rgba(0,0,0,0.7); padding: 20px; border-radius: 30px; backdrop-filter: blur(10px); border: 2px solid var(--accent);">
+                <p style="font-family: 'Cinzel Decorative'; font-size: 1.5rem; color: #fff; margin-bottom: 20px;">Choose Your Kingdom</p>
+                <div class="gem-container">
+                    <div class="gem-option" onclick="window.selectKingdom('Ruby', '#ff4b73')">
+                        <div id="gem-ruby" class="gem" style="background: radial-gradient(circle, #ff4b73, #800000); border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; box-shadow: 0 0 20px #ff4b73;"></div>
+                        <span class="gem-label">Ruby</span>
+                    </div>
+                    <div class="gem-option" onclick="window.selectKingdom('Emerald', '#50fa7b')">
+                        <div id="gem-emerald" class="gem" style="background: radial-gradient(circle, #50fa7b, #004d00); border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; box-shadow: 0 0 20px #50fa7b;"></div>
+                        <span class="gem-label">Emerald</span>
+                    </div>
+                    <div class="gem-option" onclick="window.selectKingdom('Sapphire', '#8be9fd')">
+                        <div id="gem-sapphire" class="gem" style="background: radial-gradient(circle, #8be9fd, #003366); border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; box-shadow: 0 0 20px #8be9fd;"></div>
+                        <span class="gem-label">Sapphire</span>
+                    </div>
+                    <div class="gem-option" onclick="window.selectKingdom('Amethyst', '#bd93f9')">
+                        <div id="gem-amethyst" class="gem" style="background: radial-gradient(circle, #bd93f9, #4b0082); border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; box-shadow: 0 0 20px #bd93f9;"></div>
+                        <span class="gem-label">Amethyst</span>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-
-    <div id="p5-container"></div>
 
     <div id="mirrors-gallery">
         <!-- Remote players appear here -->
