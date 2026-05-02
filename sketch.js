@@ -911,7 +911,7 @@ function nextStep(step) {
   if (step <= currentStep) return;
   
   // Clean up old step UI
-  if (step === 4) setupCombatUI(); // Prepare buttons for Round 2
+  if (step === 5) setupCombatUI(); // Prepare buttons for Battle Phase
 
   // Hide current
   let prev = document.getElementById('instr-' + currentStep);
@@ -936,6 +936,8 @@ function nextStep(step) {
 }
 
 function setupCombatUI() {
+  const hud = document.getElementById('spell-inventory-hud');
+  if (hud) hud.style.display = 'flex';
   if (spellInventoryDiv) spellInventoryDiv.style('display', 'flex');
   if (spellStatusText) spellStatusText.html("Choose a collected spell, then click the box of whoever you want to cast it at.");
   renderSpellInventory();
