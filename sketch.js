@@ -46,11 +46,11 @@ let mySpellChoice = 'Fire';
 let selectedSpell = null;
 let spellInventoryDiv;
 let spellStatusText;
-const spellInventory = { Water: 0, Fire: 0, Air: 0 };
+const spellInventory = { Ice: 0, Fire: 0, Air: 0 };
 const elementalSpells = {
-  Water: { icon: '💧', color: '#4cc9ff', rgb: [76, 201, 255], beats: 'Fire' },
-  Fire: { icon: '🔥', color: '#ff5a36', rgb: [255, 90, 54], beats: 'Air' },
-  Air: { icon: '🌬️', color: '#d8fbff', rgb: [216, 251, 255], beats: 'Water' }
+  Ice: { icon: '❄️', color: '#b2ebf2', rgb: [178, 235, 242] },
+  Fire: { icon: '🔥', color: '#ff5a36', rgb: [255, 90, 54] },
+  Air: { icon: '🌬️', color: '#d8fbff', rgb: [216, 251, 255] }
 };
 let combatButtons = [];
 let isMegaSpell = false;
@@ -643,9 +643,39 @@ function draw() {
     }
   }
 
+  processLocalStatusEffects();
+
   // HUD last so wand, particles, frame, and object layer don't paint over it
   drawPlayerHud();
 }
+
+function processLocalStatusEffects() {
+  if (!myPlayerID || !remotePlayers[myPlayerID]) return;
+  let me = remotePlayers[myPlayerID];
+  let now = Date.now();
+
+  // 1. ICE FILTER
+  if (me.frozenUntil && me.frozenUntil > now) {
+    push();
+    fill(178, 235, 242, 100);
+    rect(0, 0, width, height);
+    pop();
+    renderSpellInventory(); // Keep bar frozen
+  }
+
+  // 2. FIRE BURN (Slow Health Drain)
+  if (me.burnedUntil && me.burnedUntil > now) {
+    push();
+    fill(255, 50, 0, 80);
+    rect(0, 0, width, height);
+    pop();
+    if (frameCount % 60 === 0) { // Once per second
+       spiritHealth = max(0, spiritHealth - 3);
+       db.ref('players/' + myPlayerID + '/spirit').set(spiritHealth);
+    }
+  }
+}
+
 
 /** FAIRY VISUALS **/
 
@@ -928,6 +958,11 @@ function startGlobalCountdown() {
 
 function handleSpiritOrbs() {
   if (!isGameStarted) return; // Orbs only after countdown
+  
+  // AIR STASIS CHECK
+  let me = remotePlayers[myPlayerID] || {};
+  if (me.stasisUntil && me.stasisUntil > Date.now()) return;
+
   let spellTypes = Object.keys(elementalSpells);
 
   if (frameCount % 20 === 0 && spiritOrbs.length < 12) {
@@ -1042,6 +1077,22 @@ window.selectSpell = function(type) {
 };
 
 function renderSpellInventory() {
+  let me = remotePlayers[myPlayerID] || {};
+  let isFrozen = me.frozenUntil && me.frozenUntil > Date.now();
+
+  const bar = document.querySelector('.spell-inventory-bar');
+  if (bar) {
+    if (isFrozen) {
+      bar.style.opacity = '0.4';
+      bar.style.pointerEvents = 'none';
+      bar.style.filter = 'grayscale(1) brightness(1.5) blur(1px)';
+    } else {
+      bar.style.opacity = '1';
+      bar.style.pointerEvents = 'all';
+      bar.style.filter = 'none';
+    }
+  }
+
   // Update HTML overlay counts and selection state in the bottom bar
   Object.keys(spellInventory).forEach(type => {
     let el = document.getElementById('count-' + type);
@@ -1078,37 +1129,29 @@ function mousePressed() {
           if (remotePlayers[pID].peerID === hitID) {
             let targetChoice = remotePlayers[pID].choice || 'Fire';
             
-            // RPS RESOLUTION
-            let win = false;
-            let draw = false;
+            // Apply effect based on spell type
+            let now = Date.now();
+            let duration = 10000; // 10 seconds
             
-            if (isMegaSpell) {
-              win = true; // Mega Spell bypasses RPS!
-            } else {
-              if (mySpellChoice === targetChoice) draw = true;
-              else if (elementalSpells[mySpellChoice] && elementalSpells[mySpellChoice].beats === targetChoice) win = true;
+            if (mySpellChoice === 'Ice') {
+                db.ref('players/' + pID + '/frozenUntil').set(now + duration);
+                feedback.html(`❄️ ICE CAST! ${remotePlayers[pID].name || 'the rival'} is FROZEN!`);
+            } else if (mySpellChoice === 'Fire') {
+                db.ref('players/' + pID + '/burnUntil').set(now + duration);
+                feedback.html(`🔥 FIRE CAST! ${remotePlayers[pID].name || 'the rival'} is BURNING!`);
+            } else if (mySpellChoice === 'Air') {
+                db.ref('players/' + pID + '/stasisUntil').set(now + duration);
+                feedback.html(`🌬️ AIR CAST! ${remotePlayers[pID].name || 'the rival'} is in STASIS!`);
             }
 
-            if (win) {
-              db.ref('players/' + pID + '/spirit').set(max(0, (remotePlayers[pID].spirit || 100) - damage));
-              feedback.html(`${mySpellChoice} spell cast!`);
-              
-              // NEW: Trigger traveling projectile
-              let wandPos = getObjectPosition();
-              let spellColor = color(255, 255, 255);
-              if (elementalSpells[mySpellChoice]) {
-                  let rgb = elementalSpells[mySpellChoice].rgb;
-                  spellColor = color(rgb[0], rgb[1], rgb[2]);
-              }
-              spellProjectiles.push(new SpellProjectile(wandPos.x, wandPos.y, mouseX, mouseY, spellColor));
-            } else if (draw) {
-              db.ref('players/' + pID + '/spirit').set(max(0, (remotePlayers[pID].spirit || 100) - 5));
-              spiritHealth = max(0, spiritHealth - 5);
-              feedback.html(`${mySpellChoice} met ${targetChoice}. Both spells shimmered out.`);
-            } else {
-              spiritHealth = max(0, spiritHealth - damage);
-              feedback.html("You were countered! Energy backfire!");
+            // Trigger Visual Projectile
+            let wandPos = getObjectPosition();
+            let spellColor = color(255, 255, 255);
+            if (elementalSpells[mySpellChoice]) {
+                let rgb = elementalSpells[mySpellChoice].rgb;
+                spellColor = color(rgb[0], rgb[1], rgb[2]);
             }
+            spellProjectiles.push(new SpellProjectile(wandPos.x, wandPos.y, winMouseX, winMouseY, spellColor));
 
             spellInventory[mySpellChoice] = max(0, spellInventory[mySpellChoice] - 1);
             if (spellInventory[mySpellChoice] <= 0) selectedSpell = null;
@@ -1119,6 +1162,7 @@ function mousePressed() {
               db.ref('players/' + myPlayerID + '/spirit').set(spiritHealth);
             }
             break;
+
           }
         }
       }
