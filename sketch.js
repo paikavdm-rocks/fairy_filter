@@ -188,6 +188,16 @@ function addRemoteVideo(remotePeerID, stream) {
     }
   }
 
+  // Apply appropriate kingdom border if synchronized
+  let clr = "#ff79c6";
+  for (let pID in remotePlayers) {
+    if (remotePlayers[pID].peerID === remotePeerID) {
+      clr = remotePlayers[pID].kingdomColor || "#ff79c6";
+      break;
+    }
+  }
+  frame.style('border-color', clr);
+  
   let label = createP(remoteName);
   label.style('margin', '0 0 10px 0');
   label.style('font-family', 'Cinzel Decorative');
@@ -362,8 +372,9 @@ function setup() {
       nextStep(2);
       nameBtn.hide();
       
-      spellContainer.style('display', 'flex');
-      
+      // Show kingdom choice
+      document.getElementById('kingdom-selection').style.display = 'flex';
+
       // Reveal the gallery
       let gallery = document.getElementById('mirrors-gallery');
       gallery.style.opacity = '1';
@@ -373,7 +384,22 @@ function setup() {
       gallery.classList.add('fly-in');
     }
   });
-  // -------------------------
+
+  function selectKingdom(name, clr) {
+  currentKingdom = name;
+  kingdomColor = clr;
+  myFairyColor = color(clr);
+  
+  if (myPlayerID) {
+    db.ref('players/' + myPlayerID + '/kingdom').set(name);
+    db.ref('players/' + myPlayerID + '/kingdomColor').set(clr);
+  }
+  
+  document.getElementById('kingdom-selection').style.display = 'none';
+  spellContainer.style('display', 'flex');
+  nextStep(3);
+}
+window.selectKingdom = selectKingdom;
 
   spellContainer = createDiv();
   spellContainer.style('display', 'none'); // Hidden until named
@@ -729,15 +755,12 @@ function drawWing(x, y, dir) {
   rotate(dir * PI / 8 + sin(frameCount * 0.1) * 0.1);
   noStroke();
   
-  // Use current fairy color
   let c = myFairyColor || color(255, 121, 198);
   fill(red(c), green(c), blue(c), 150);
   
-  // Simple elegant wings
   ellipse(dir * 60, -60, 120, 250);
   ellipse(dir * 50, 40, 80, 160);
   
-  // Glow
   blendMode(ADD);
   fill(255, 255, 255, 50);
   ellipse(dir * 60, -60, 40, 180);
@@ -748,11 +771,18 @@ function drawCrown(x, y) {
   push();
   translate(x, y);
   noStroke();
-  fill(255, 215, 0, 220); // Gold
-  // Tiara
-  triangle(-15, 0, 15, 0, 0, -40);
-  triangle(-30, 0, -10, 0, -20, -25);
-  triangle(30, 0, 10, 0, 20, -25);
+  fill(92, 64, 51, 255); // Earthy Brown Crown
+  // Tiara points
+  triangle(-20, 0, 20, 0, 0, -35);
+  triangle(-35, 0, -10, 0, -25, -20);
+  triangle(35, 0, 10, 0, 20, -20);
+  
+  // Jewel in center
+  let c = myFairyColor || color(255, 255, 255);
+  fill(c);
+  drawingContext.shadowBlur = 10;
+  drawingContext.shadowColor = c;
+  ellipse(0, -10, 10, 14);
   pop();
 }
 
@@ -764,11 +794,12 @@ function drawElfEar(x, y, dir) {
   beginShape();
   vertex(dir * -5, 10);
   vertex(dir * -10, -5);
-  vertex(dir * 40, -40); // Pointy
+  vertex(dir * 40, -40); // Pointy Elf Ear
   vertex(dir * 10, 0);
   endShape(CLOSE);
   pop();
 }
+
 
 // Legacy fairy glow removed for system simplification
 
