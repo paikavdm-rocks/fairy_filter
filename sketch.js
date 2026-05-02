@@ -450,14 +450,14 @@ window.selectKingdom = selectKingdom;
   });
   logoutBtn.parent(spellContainer);
 
-  feedback = createP("Look into the Mirror! Conjure your item first.");
+  feedback = createP("");
   feedback.style('color', '#ffbaff');
   feedback.style('font-family', 'Quicksand');
   feedback.style('font-size', '1.2rem');
   feedback.style('margin', '0');
   feedback.parent(controls);
 
-  spellStatusText = createP("Collect Water, Fire, and Air orbs with the top of your index finger.");
+  spellStatusText = createP("");
   spellStatusText.style('color', '#d8fbff');
   spellStatusText.style('font-family', 'Quicksand');
   spellStatusText.style('font-size', '0.95rem');
