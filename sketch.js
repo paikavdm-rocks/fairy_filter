@@ -480,20 +480,19 @@ window.changeUsername = changeUsername;
   // Hand and Body tracking
   video = createCapture(constraints, function () {
     // Handpose
-    // Handpose
     handPose = ml5.handPose(video, { flipHorizontal: false }, () => {
       console.log("Hand tracker ready");
-    });
-    handPose.on('predict', (results) => {
-      hands = Array.isArray(results) && results.length > 0 ? results.slice(0, 1) : [];
+      handPose.detectStart(video, (results) => {
+        hands = results;
+      });
     });
 
     // BodyPose for Wings/Crown/Ears
     bodyPose = ml5.bodyPose(video, { flipHorizontal: false }, () => {
       console.log("Body tracker ready");
-    });
-    bodyPose.on('pose', (results) => {
-      poses = results;
+      bodyPose.detectStart(video, (results) => {
+        poses = results;
+      });
     });
   });
 
@@ -592,11 +591,8 @@ function draw() {
       }
     }
 
-    if (fairyFilterActive && myFairyColor) {
-      tint(red(myFairyColor), green(myFairyColor), blue(myFairyColor), 180); 
-    }
+    // Draw the live video feed (no tint)
     image(video, 0, 0, width, height);
-    noTint();
     
     // Add Fairy Visuals (Wings, Crown, Ears)
     if (fairyFilterActive) {
