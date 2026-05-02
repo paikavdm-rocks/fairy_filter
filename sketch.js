@@ -59,6 +59,33 @@ let kingdomColor = '#ff79c6'; // Magenta theme
 
 let isCountdownStarted = false;
 let isGameStarted = false;
+let spellProjectiles = [];
+
+class SpellProjectile {
+  constructor(startX, startY, targetX, targetY, color) {
+    this.x = startX;
+    this.y = startY;
+    this.targetX = targetX;
+    this.targetY = targetY;
+    this.color = color;
+    this.progress = 0;
+    this.speed = 0.05;
+    this.trail = [];
+  }
+  update() {
+    this.progress += this.speed;
+    this.x = lerp(this.x, this.targetX, this.progress);
+    this.y = lerp(this.y, this.targetY, this.progress);
+    
+    // Add pulsing particles along the trail
+    for (let i = 0; i < 3; i++) {
+        let p = new Particle(this.x + random(-10, 10), this.y + random(-10, 10));
+        p.color = this.color;
+        particles.push(p);
+    }
+    return this.progress >= 1;
+  }
+}
 
 function initFirebaseListeners() {
   // Cloud event listener for remote players
@@ -590,6 +617,13 @@ function draw() {
     pop();
   }
 
+  // Projectiles
+  for (let i = spellProjectiles.length - 1; i >= 0; i--) {
+    if (spellProjectiles[i].update()) {
+      spellProjectiles.splice(i, 1);
+    }
+  }
+
   // HUD last so wand, particles, frame, and object layer don't paint over it
   drawPlayerHud();
 }
@@ -1039,6 +1073,15 @@ function mousePressed() {
             if (win) {
               db.ref('players/' + pID + '/spirit').set(max(0, (remotePlayers[pID].spirit || 100) - damage));
               feedback.html(`${mySpellChoice} spell cast!`);
+              
+              // NEW: Trigger traveling projectile
+              let wandPos = getObjectPosition();
+              let spellColor = color(255, 255, 255);
+              if (elementalSpells[mySpellChoice]) {
+                  let rgb = elementalSpells[mySpellChoice].rgb;
+                  spellColor = color(rgb[0], rgb[1], rgb[2]);
+              }
+              spellProjectiles.push(new SpellProjectile(wandPos.x, wandPos.y, mouseX, mouseY, spellColor));
             } else if (draw) {
               db.ref('players/' + pID + '/spirit').set(max(0, (remotePlayers[pID].spirit || 100) - 5));
               spiritHealth = max(0, spiritHealth - 5);
