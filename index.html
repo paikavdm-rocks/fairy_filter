@@ -105,15 +105,6 @@
             background: #000; color: #ff79c6; display: flex; align-items: center;
             justify-content: center; font-size: 1.5rem; z-index: 2000;
         }
-        #magical-popup {
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(20, 10, 40, 0.95); padding: 30px 50px; border-radius: 30px;
-            border: 3px solid var(--accent); box-shadow: 0 0 50px rgba(255, 121, 198, 0.5);
-            z-index: 10000; text-align: center; display: none;
-            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        @keyframes popIn { from { transform: translate(-50%, -40%) scale(0.8); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
-        
         #countdown-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             display: none; align-items: center; justify-content: center;
@@ -125,6 +116,7 @@
     </style>
     <script>
 
+
         console.log("Fairy Filter Booting...");
         window.onerror = function(msg, url, line) {
             console.error("Magical Error: " + msg + " at " + line);
@@ -133,11 +125,6 @@
 </head>
 <body>
     <div id="loading-screen">✨ Awakening the Arena...</div>
-    
-    <div id="magical-popup">
-        <h2 id="popup-text" style="font-family: 'Cinzel Decorative'; margin: 0; color: #fff;"></h2>
-    </div>
-
     <div id="countdown-overlay"></div>
 
     <div id="login-overlay">

@@ -60,18 +60,6 @@ let kingdomColor = '#ff79c6'; // Magenta theme
 let isCountdownStarted = false;
 let isGameStarted = false;
 
-function showMagicalPopup(msg, duration = 3000) {
-  let p = document.getElementById('magical-popup');
-  let t = document.getElementById('popup-text');
-  if (p && t) {
-    t.innerText = msg;
-    p.style.display = 'block';
-    if (duration > 0) {
-      setTimeout(() => { p.style.display = 'none'; }, duration);
-    }
-  }
-}
-
 function initFirebaseListeners() {
   // Cloud event listener for remote players
   db.ref('players').on('value', (snapshot) => {
@@ -118,7 +106,7 @@ function initFirebaseListeners() {
       document.getElementById('login-overlay').style.display = 'none';
       myPlayerID = user.uid;
       myPlayerName = user.email ? user.email.split('@')[0] : "Fairy"; 
-      showMagicalPopup("✨ Welcome to the Battlefield! Type in your name below to awaken your power.", 5000);
+      
       
       if (nameInput) nameInput.value(myPlayerName);
       
@@ -327,7 +315,7 @@ function setup() {
     if (currentStep === 1) {
       nextStep(2);
       nameBtn.hide();
-      showMagicalPopup("✨ Conjure your magical object to act as your wand!", 6000);
+      
       spellContainer.style('display', 'flex');
       
       // Reveal the gallery
@@ -793,7 +781,7 @@ async function castRegionalSpell(objectPrompt) {
         
         // Notify others we are ready
         if (myPlayerID) db.ref('players/' + myPlayerID + '/wandURL').set(result.output);
-        showMagicalPopup("✨ Wand Ready! Waiting for other fairies...", 0);
+        
 
         for (let i = 0; i < 60; i++) particles.push(new Particle(random(width), random(height)));
       });
@@ -864,7 +852,6 @@ function updateInstructionSteps() {
 
 function startGlobalCountdown() {
   isCountdownStarted = true;
-  document.getElementById('magical-popup').style.display = 'none';
   let overlay = document.getElementById('countdown-overlay');
   overlay.style.display = 'flex';
   
@@ -880,7 +867,7 @@ function startGlobalCountdown() {
       overlay.style.display = 'none';
       isGameStarted = true;
       nextStep(3);
-      showMagicalPopup("✨ BATTLE START!", 2000);
+      
     }
     count--;
   }, 1000);
