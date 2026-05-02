@@ -264,17 +264,16 @@ const WAND_TRACK_SMOOTH = 0.22;
 let bodyPose;
 let poses = [];
 
-let fairyFilterActive = true;
+let fairyFilterActive = false; // Activated after kingdom choice
 let prevHandX = null;
 let handVelocity = 0;
 let fullFairyImage = null;
 let isTransformingSelf = false;
 
-// Models will be loaded asynchronously in setup()
-
-// Real-time Fairy Assets (Generated placeholders)
-let fairyOverlay;
+// Real-time Fairy Assets
 let wingColor;
+let fireflies = [];
+let bgImage;
 
 // State of the current spell
 let currentObjectMask = null; // AI result for object
@@ -399,9 +398,10 @@ function selectKingdom(name, clr) {
   }
   
   document.getElementById('kingdom-selection').style.display = 'none';
-  spellContainer.style('display', 'flex');
+  if (spellContainer) spellContainer.style('display', 'flex');
   nextStep(3);
 }
+window.selectKingdom = selectKingdom;
 function changeUsername() {
   currentStep = 1;
   nextStep(1); 
@@ -479,15 +479,16 @@ window.changeUsername = changeUsername;
   // Hand and Body tracking
   video = createCapture(constraints, function () {
     // Handpose
-    handPose = ml5.handpose(video, { flipHorizontal: false }, () => {
+    // Handpose
+    handPose = ml5.handPose(video, { flipHorizontal: false }, () => {
       console.log("Hand tracker ready");
     });
     handPose.on('predict', (results) => {
       hands = Array.isArray(results) && results.length > 0 ? results.slice(0, 1) : [];
     });
 
-    // PoseNet for Wings/Crown/Ears
-    bodyPose = ml5.poseNet(video, () => {
+    // BodyPose for Wings/Crown/Ears
+    bodyPose = ml5.bodyPose(video, { flipHorizontal: false }, () => {
       console.log("Body tracker ready");
     });
     bodyPose.on('pose', (results) => {
@@ -500,8 +501,16 @@ window.changeUsername = changeUsername;
   video.elt.setAttribute('muted', '');       // Critical for iOS
   video.hide();
 
+  bgImage = loadImage('fairy_bg.png');
+
   // Create default fairy effect color
-  myFairyColor = color(255, 121, 198); 
+  myFairyColor = color(255, 121, 198);
+  wingColor = myFairyColor;
+
+  // Initialize fireflies
+  for (let i = 0; i < 25; i++) {
+    fireflies.push(new Firefly());
+  }
 }
 
 function hashStringToColor(str) {
@@ -519,7 +528,7 @@ function hashStringToColor(str) {
 }
 
 function draw() {
-  background(0);
+  drawMagicalBackground();
 
   // 1. Progress Step Logic
   updateInstructionSteps();
@@ -582,8 +591,11 @@ function draw() {
       }
     }
 
-    // Draw the live video feed
+    if (fairyFilterActive && myFairyColor) {
+      tint(red(myFairyColor), green(myFairyColor), blue(myFairyColor), 180); 
+    }
     image(video, 0, 0, width, height);
+    noTint();
     
     // Add Fairy Visuals (Wings, Crown, Ears)
     if (fairyFilterActive) {
@@ -700,46 +712,126 @@ function processLocalStatusEffects() {
 
 /** FAIRY VISUALS **/
 
+function drawMagicalBackground() {
+  if (bgImage) {
+    image(bgImage, 0, 0, width, height);
+  } else {
+    background(26, 42, 34); // Deep Emerald fallback
+  }
+
+  // Draw shifting misty shapes using noise
+  push();
+  noStroke();
+  for (let i = 0; i < 3; i++) {
+    fill(100, 200, 255, 30);
+    beginShape();
+    for (let x = 0; x <= width; x += 30) {
+      let yOffset = noise(x * 0.005, frameCount * 0.01 + i * 100) * 150;
+      vertex(x, height - yOffset - i * 50);
+    }
+    vertex(width, height);
+    vertex(0, height);
+    endShape(CLOSE);
+  }
+  pop();
+
+  // Update and draw fireflies
+  for (let f of fireflies) {
+    f.update();
+    f.show();
+  }
+}
+
+class Firefly {
+  constructor() {
+    this.x = random(width);
+    this.y = random(height);
+    this.angle = random(TWO_PI);
+    this.orbit = random(20, 50);
+    this.speed = random(0.01, 0.03);
+    this.size = random(3, 8);
+    this.color = color(random(150, 255), 255, random(150, 255), 180);
+  }
+  update() {
+    this.angle += this.speed;
+    this.x += cos(this.angle) * 0.5;
+    this.y += sin(this.angle * 0.5) * 0.5;
+    if (this.x < 0) this.x = width;
+    if (this.x > width) this.x = 0;
+    if (this.y < 0) this.y = height;
+    if (this.y > height) this.y = 0;
+  }
+  show() {
+    push();
+    let pulse = 150 + sin(frameCount * 0.1 + this.angle) * 100;
+    noStroke();
+    fill(red(this.color), green(this.color), blue(this.color), pulse);
+    drawingContext.shadowBlur = pulse / 10;
+    drawingContext.shadowColor = this.color;
+    ellipse(this.x, this.y, this.size);
+    pop();
+  }
+}
+
 function applyFairyGlow() {
   if (poses.length > 0) {
-    let person = poses[0];
-    let pose = person.pose || person;
-
-    // Draw Wings of actual fairy color
-    let lShoulder = pose.leftShoulder || (pose.keypoints ? pose.keypoints.find(k => k.part === 'leftShoulder') : null);
-    let rShoulder = pose.rightShoulder || (pose.keypoints ? pose.keypoints.find(k => k.part === 'rightShoulder') : null);
-
-    if (lShoulder && lShoulder.score > 0.2) {
+    let pose = poses[0];
+    
+    // Draw Wings on Shoulders
+    let lShoulder = pose.left_shoulder;
+    let rShoulder = pose.right_shoulder;
+    
+    if (lShoulder && lShoulder.confidence > 0.1) {
       let sx = map(lShoulder.x, 0, vidW(), 0, width);
       let sy = map(lShoulder.y, 0, vidH(), 0, height);
       drawWing(sx, sy, 1);
     }
-    if (rShoulder && rShoulder.score > 0.2) {
+    
+    if (rShoulder && rShoulder.confidence > 0.1) {
       let sx = map(rShoulder.x, 0, vidW(), 0, width);
       let sy = map(rShoulder.y, 0, vidH(), 0, height);
       drawWing(sx, sy, -1);
     }
-
-    // Nose for Crown/Ears
-    let nose = pose.nose || (pose.keypoints ? pose.keypoints.find(k => k.part === 'nose') : null);
-    let leftEar = pose.leftEar || (pose.keypoints ? pose.keypoints.find(k => k.part === 'leftEar') : null);
-    let rightEar = pose.rightEar || (pose.keypoints ? pose.keypoints.find(k => k.part === 'rightEar') : null);
-
-    if (nose && nose.score > 0.2) {
+    
+    // Draw Fairy Crown and Ears on the Head
+    let leftEar = pose.left_ear;
+    let rightEar = pose.right_ear;
+    let nose = pose.nose;
+    
+    if (nose && nose.confidence > 0.1) {
       let nx = map(nose.x, 0, vidW(), 0, width);
       let ny = map(nose.y, 0, vidH(), 0, height);
       
-      if (leftEar && leftEar.score > 0.1) {
-          let ex = map(leftEar.x, 0, vidW(), 0, width);
-          let ey = map(leftEar.y, 0, vidH(), 0, height);
-          drawElfEar(ex, ey, 1);
+      // Draw pointy ears
+      if (leftEar && leftEar.confidence > 0.1) {
+        let ex = map(leftEar.x, 0, vidW(), 0, width);
+        let ey = map(leftEar.y, 0, vidH(), 0, height);
+        drawElfEar(ex, ey, 1);
       }
-      if (rightEar && rightEar.score > 0.1) {
-          let ex = map(rightEar.x, 0, vidW(), 0, width);
-          let ey = map(rightEar.y, 0, vidH(), 0, height);
-          drawElfEar(ex, ey, -1);
+      if (rightEar && rightEar.confidence > 0.1) {
+        let ex = map(rightEar.x, 0, vidW(), 0, width);
+        let ey = map(rightEar.y, 0, vidH(), 0, height);
+        drawElfEar(ex, ey, -1);
       }
-      drawCrown(nx, ny - 100);
+      
+      // Draw intricate crown
+      drawCrown(nx, ny - 90);
+    }
+    
+    // Particles flowing down from wings
+    if (frameCount % 3 === 0 && lShoulder && rShoulder) {
+      let sx1 = map(lShoulder.x, 0, vidW(), 0, width);
+      let sy1 = map(lShoulder.y, 0, vidH(), 0, height);
+      let sx2 = map(rShoulder.x, 0, vidW(), 0, width);
+      let sy2 = map(rShoulder.y, 0, vidH(), 0, height);
+      
+      let p1 = new Particle(sx1 + random(-20, 20), sy1);
+      p1.color = myFairyColor;
+      particles.push(p1);
+      
+      let p2 = new Particle(sx2 + random(-20, 20), sy2);
+      p2.color = myFairyColor;
+      particles.push(p2);
     }
   }
 }
@@ -747,52 +839,170 @@ function applyFairyGlow() {
 function drawWing(x, y, dir) {
   push();
   translate(x, y);
-  rotate(dir * PI / 8 + sin(frameCount * 0.1) * 0.1);
+  
+  let flutter = sin(frameCount * 0.2) * 0.1;
+  rotate(dir * PI/8 + flutter); 
+  
+  // Glowing effect
+  blendMode(ADD);
   noStroke();
   
-  let c = myFairyColor || color(255, 121, 198);
-  fill(red(c), green(c), blue(c), 150);
+  let c = myFairyColor;
   
-  ellipse(dir * 60, -60, 120, 250);
-  ellipse(dir * 50, 40, 80, 160);
+  // Insect wings (4 layers)
+  fill(red(c), green(c), blue(c), 100);
+  ellipse(dir * 50, -80, 100, 200); 
   
-  blendMode(ADD);
-  fill(255, 255, 255, 50);
-  ellipse(dir * 60, -60, 40, 180);
+  fill(50, 200, 255, 120);
+  ellipse(dir * 40, -60, 60, 150); 
+  
+  fill(255, 150, 100, 150);
+  ellipse(dir * 30, -50, 30, 100); 
+  
+  fill(red(c), green(c), blue(c), 100);
+  ellipse(dir * 35, 50, 70, 120); 
+  
+  blendMode(BLEND); 
+  strokeWeight(2);
+  noFill();
+  
+  // Intricate pulsing veins
+  let pulse = map(sin(frameCount * 0.1), -1, 1, 100, 255);
+  stroke(255, 255, 255, pulse);
+  bezier(0, 0, dir * 25, -40, dir * 60, -90, dir * 50, -180);
+  bezier(0, 0, dir * 15, -20, dir * 40, -60, dir * 70, -70);
+  bezier(0, 0, dir * 10, -10, dir * 30, -30, dir * 50, -20);
+  
+  bezier(0, 0, dir * 15, 20, dir * 40, 60, dir * 30, 110);
+  bezier(0, 0, dir * 10, 10, dir * 30, 40, dir * 60, 50);
   pop();
 }
 
 function drawCrown(x, y) {
   push();
   translate(x, y);
-  noStroke();
-  fill(92, 64, 51, 255); // Earthy Brown Crown
-  // Tiara points
-  triangle(-20, 0, 20, 0, 0, -35);
-  triangle(-35, 0, -10, 0, -25, -20);
-  triangle(35, 0, 10, 0, 20, -20);
   
-  // Jewel in center
-  let c = myFairyColor || color(255, 255, 255);
-  fill(c);
-  drawingContext.shadowBlur = 10;
-  drawingContext.shadowColor = c;
-  ellipse(0, -10, 10, 14);
+  // Floating magic halo rings
+  noFill();
+  strokeWeight(2);
+  stroke(255, 215, 0, 150);
+  push();
+  rotate(frameCount * 0.02);
+  ellipse(0, 5, 80, 20); 
+  pop();
+  
+  push();
+  rotate(-frameCount * 0.015);
+  stroke(255, 150, 255, 150);
+  ellipse(0, -10, 100, 30);
+  pop();
+  
+  // Tiara lattice
+  blendMode(ADD);
+  noStroke();
+  let c = myFairyColor;
+  fill(red(c), green(c), blue(c), 255); 
+  ellipse(0, 0, 25, 30);
+  fill(255, 255, 255, 255); 
+  ellipse(0, 0, 10, 15);
+  
+  blendMode(BLEND);
+  fill(255, 215, 0, 220);
+  triangle(-12, 0, 12, 0, 0, -50);
+  
+  // Side gems
+  for (let d = -1; d <= 1; d += 2) {
+    for (let j = 1; j <= 3; j++) {
+      let offset = j * 25;
+      let heightOff = j * 10; 
+      let gemSize = 20 - j * 4;
+      
+      stroke(255, 215, 0, 200);
+      strokeWeight(3);
+      noFill();
+      bezier(d * (offset - 25), heightOff - 10, d * (offset - 15), heightOff, d * offset, heightOff, d * offset, heightOff);
+      
+      noStroke();
+      blendMode(ADD);
+      if (j === 2) fill(50, 200, 255, 255); 
+      else fill(255, 255, 100, 255); 
+      
+      ellipse(d * offset, heightOff, gemSize, gemSize + 5);
+      
+      blendMode(BLEND);
+      fill(255, 215, 0, 220);
+      triangle(d * offset - gemSize/2, heightOff, d * offset + gemSize/2, heightOff, d * offset, heightOff - (40 - j * 8));
+    }
+  }
   pop();
 }
 
 function drawElfEar(x, y, dir) {
   push();
   translate(x, y);
+  
   noStroke();
-  fill(255, 220, 220, 255);
+  fill(255, 220, 220, 255); 
+  
+  beginShape();
+  vertex(dir * -10, 20); 
+  vertex(dir * -15, -10); 
+  vertex(dir * 50, -50); 
+  vertex(dir * 15, -5); 
+  vertex(dir * 5, 25);
+  endShape(CLOSE);
+  
+  fill(red(myFairyColor), green(myFairyColor), blue(myFairyColor), 100);
   beginShape();
   vertex(dir * -5, 10);
-  vertex(dir * -10, -5);
-  vertex(dir * 40, -40); // Pointy Elf Ear
-  vertex(dir * 10, 0);
+  vertex(dir * -5, -5);
+  vertex(dir * 40, -40);
+  vertex(dir * 5, 0);
   endShape(CLOSE);
+  
+  // Magical dangling earring!
+  stroke(255, 215, 0, 255);
+  strokeWeight(2);
+  line(dir * 0, 20, dir * 0, 40); 
+  noStroke();
+  blendMode(ADD);
+  fill(100, 255, 255, 255);
+  ellipse(dir * 0, 45, 10, 20); 
+  fill(255, 255, 255, 255);
+  ellipse(dir * 0, 45, 4, 8); 
+  
+  blendMode(BLEND);
   pop();
+}
+
+class Particle {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.vx = random(-2, 2);
+    this.vy = random(-2, 2);
+    this.alpha = 255;
+    this.size = random(3, 8);
+    this.color = myFairyColor || color(255, 255, 200);
+  }
+  finished() { return this.alpha < 0; }
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    this.alpha -= 5;
+  }
+  show() {
+    noStroke();
+    let c = this.color;
+    fill(red(c), green(c), blue(c), this.alpha);
+    ellipse(this.x, this.y, this.size);
+    
+    // Sparkle core
+    if (random(1) > 0.8) {
+      fill(255, 255, 255, this.alpha);
+      ellipse(this.x, this.y, this.size / 2);
+    }
+  }
 }
 
 
@@ -1325,26 +1535,24 @@ class Particle {
 }
 
 function isFist(hand) {
+  if (!hand || !hand.keypoints) return false;
   let foldedFingers = 0;
-  let wrist = hand.keypoints ? hand.keypoints[0] : (hand.landmarks ? hand.landmarks[0] : null); 
-  if (!wrist && hand.annotations) wrist = hand.annotations.palmBase[0];
-  if (!wrist) return false;
-
-  let wx = wrist.x || wrist[0];
-  let wy = wrist.y || wrist[1];
-
-  if (hand.annotations) {
-      let tips = [hand.annotations.indexFinger[3], hand.annotations.middleFinger[3], hand.annotations.ringFinger[3], hand.annotations.pinky[3]];
-      let mcps = [hand.annotations.indexFinger[0], hand.annotations.middleFinger[0], hand.annotations.ringFinger[0], hand.annotations.pinky[0]];
-      
-      for (let i=0; i<4; i++) {
-          if (dist(wx, wy, tips[i][0], tips[i][1]) < dist(wx, wy, mcps[i][0], mcps[i][1]) * 1.5) {
-              foldedFingers++;
-          }
-      }
-      return foldedFingers >= 3;
+  let wrist = hand.keypoints[0];
+  let fingers = [
+    { tip: 8, mcp: 5 },   // Index
+    { tip: 12, mcp: 9 },  // Middle
+    { tip: 16, mcp: 13 }, // Ring
+    { tip: 20, mcp: 17 }  // Pinky
+  ];
+  for (let f of fingers) {
+    let tip = hand.keypoints[f.tip];
+    let mcp = hand.keypoints[f.mcp];
+    if (!tip || !mcp) continue;
+    let dTip = dist(wrist.x, wrist.y, tip.x, tip.y);
+    let dMcp = dist(wrist.x, wrist.y, mcp.x, mcp.y);
+    if (dTip < dMcp * 1.5) foldedFingers++;
   }
-  return false;
+  return foldedFingers >= 3;
 }
 
 function drawPlayerHud() {
@@ -1427,31 +1635,20 @@ function getObjectPosition() {
 
   if (Array.isArray(hands) && hands.length > 0 && hands[0]) {
     let hand = hands[0];
-    let wristRaw = null;
-    if (hand.annotations && hand.annotations.palmBase) {
-      wristRaw = hand.annotations.palmBase[0];
-    } else if (hand.landmarks && hand.landmarks.length > 0) {
-      wristRaw = hand.landmarks[0];
-    }
+    let wristRaw = hand.wrist || (hand.keypoints ? hand.keypoints[0] : null);
+    
     if (wristRaw) {
-      let rawX = Array.isArray(wristRaw) ? wristRaw[0] : (wristRaw.x || 0);
-      let rawY = Array.isArray(wristRaw) ? wristRaw[1] : (wristRaw.y || 0);
-      let wx = map(rawX, 0, vidW(), 0, width);
-      let wy = map(rawY, 0, vidH(), 0, height);
-      let tx = width - wx;
-      let ty = wy;
-      let mcpRaw = null;
-      if (hand.annotations && hand.annotations.indexFinger) {
-        mcpRaw = hand.annotations.indexFinger[3]; // Index Tip
-      } else if (hand.landmarks && hand.landmarks.length > 8) {
-        mcpRaw = hand.landmarks[8]; // Index Tip
+      let rawX = wristRaw.x;
+      let rawY = wristRaw.y;
+      
+      let indexTipRaw = hand.index_finger_tip || (hand.keypoints ? hand.keypoints[8] : null);
+      if (indexTipRaw) {
+        rawX = indexTipRaw.x;
+        rawY = indexTipRaw.y;
       }
-      if (mcpRaw) {
-        let mx = map(Array.isArray(mcpRaw) ? mcpRaw[0] : mcpRaw.x, 0, vidW(), 0, width);
-        let my = map(Array.isArray(mcpRaw) ? mcpRaw[1] : mcpRaw.y, 0, vidH(), 0, height);
-        tx = width - mx;
-        ty = my;
-      }
+
+      let tx = width - map(rawX, 0, vidW(), 0, width);
+      let ty = map(rawY, 0, vidH(), 0, height);
 
       if (frameCount !== wandSmoothFrame) {
         wandSmoothFrame = frameCount;
