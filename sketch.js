@@ -608,9 +608,11 @@ function draw() {
 
 
   // Elemental spell orbs during Gathering and Duel.
-  if (currentStep >= 3 && currentStep <= 4) {
+  // Elemental spell orbs during Gathering phase (Step 4)
+  if (currentStep === 4) {
     handleSpiritOrbs();
   }
+
 
   // 3. We use AI to apply the object transformation (if the spell worked)
   if (currentObjectTransformed) {
@@ -941,7 +943,8 @@ function updateInstructionSteps() {
   if (currentStep === 1) return; // Wait for name
 
   // Check if everyone has a wand and we're ready to start
-  if (currentStep === 2 && currentObjectTransformed && !isCountdownStarted) {
+  if (currentStep === 3 && currentObjectTransformed && !isCountdownStarted) {
+
     let everyoneReady = true;
     for (let pID in remotePlayers) {
         if (!remotePlayers[pID].wandURL) {
@@ -955,8 +958,8 @@ function updateInstructionSteps() {
     }
   }
 
-  if (currentStep === 3 && totalCollectedSpells() >= 3) {
-    nextStep(4);
+  if (currentStep === 4 && totalCollectedSpells() >= 3) {
+    nextStep(5);
   }
 }
 
@@ -976,7 +979,7 @@ function startGlobalCountdown() {
       clearInterval(interval);
       overlay.style.display = 'none';
       isGameStarted = true;
-      nextStep(3);
+      nextStep(4);
       
     }
     count--;
@@ -1145,7 +1148,8 @@ function mousePressed() {
     damage = 35; // Slightly lower damage
   }
 
-  if (currentStep === 4 && selectedSpell && spellInventory[selectedSpell] > 0 && spiritHealth >= costSpirit) {
+  if (currentStep === 5 && selectedSpell && spellInventory[selectedSpell] > 0 && spiritHealth >= costSpirit) {
+
     // Check if we aimed at a remote mirror (using absolute viewport coordinates)
     let elements = document.elementsFromPoint(winMouseX, winMouseY);
     elements.forEach(el => {
