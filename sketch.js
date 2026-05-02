@@ -370,7 +370,8 @@ function setup() {
   nameBtn.mousePressed(() => {
     if (currentStep === 1) {
       nextStep(2);
-      nameBtn.hide();
+      nameContainer.hide();
+
       
       // Show kingdom choice
       document.getElementById('kingdom-selection').style.display = 'flex';
@@ -602,16 +603,9 @@ function draw() {
     fill(255, 255, 255);
     drawingContext.shadowBlur = 20;
     drawingContext.shadowColor = '#ff79c6';
-    text("FAIRYTOPIA BATTLEFIELD", width/2, height/2 - 20);
-    
-    drawingContext.shadowBlur = 10;
-    drawingContext.shadowColor = '#8be9fd';
-    textFont('Quicksand');
-    textSize(18);
-    fill(200, 200, 255);
-    text("ENTER YOUR NAME ABOVE TO AWAKEN YOUR POWER", width/2, height/2 + 40);
     pop();
   }
+
 
   // Elemental spell orbs during Gathering and Duel.
   if (currentStep >= 3 && currentStep <= 4) {
@@ -1351,8 +1345,9 @@ function isFist(hand) {
 }
 
 function drawPlayerHud() {
-  if (!myPlayerID) return;
+  if (!myPlayerID || currentStep < 2) return;
   const hp = constrain(Number(spiritHealth) || 0, 0, 100);
+
   
   // Default to screen center top if no pose detected
   let hudX = width * 0.5;
