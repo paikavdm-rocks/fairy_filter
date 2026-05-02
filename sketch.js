@@ -334,7 +334,7 @@ function setup() {
   spellContainer.style('gap', '10px');
   spellContainer.parent(inputRow);
 
-  let input_image_field = createInput("A crystal water flower");
+  let input_image_field = createInput("turn any object into a wand");
   input_image_field.style('width', '100%');
   input_image_field.style('max-width', '250px');
   input_image_field.id("input_image_prompt");
