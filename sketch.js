@@ -176,17 +176,33 @@ function addRemoteVideo(remotePeerID, stream) {
   if (document.getElementById(remotePeerID)) return; // Don't duplicate rendering displays!
   
   let frame = createDiv();
-  frame.class('mirror-frame');
+  frame.class('mirror-frame fly-in');
   frame.id(remotePeerID);
+  
+  // Find player name from remotePlayers sync
+  let remoteName = "Mysterious Fairy";
+  for (let pID in remotePlayers) {
+    if (remotePlayers[pID].peerID === remotePeerID) {
+      remoteName = remotePlayers[pID].name || "Fairy";
+      break;
+    }
+  }
+
+  let label = createP(remoteName + "'s Vision");
+  label.style('margin', '0 0 10px 0');
+  label.style('font-family', 'Cinzel Decorative');
+  label.style('font-size', '1.2rem');
+  label.style('text-align', 'center');
+  label.style('color', 'var(--accent)');
+  label.parent(frame);
   
   let vid = createElement('video');
   vid.elt.srcObject = stream;
   vid.elt.autoplay = true;
   vid.elt.playsInline = true;
   
-  // Automatically inherit the exact physical pixel proportions dictated by the local phone screen setup!
-  vid.style('width', canvas.width + 'px');
-  vid.style('height', canvas.height + 'px');
+  vid.style('width', '100%');
+  vid.style('height', 'auto');
   vid.style('border-radius', '10px');
   vid.style('background-color', '#000');
   
@@ -1052,8 +1068,8 @@ function mousePressed() {
   }
 
   if (currentStep === 4 && selectedSpell && spellInventory[selectedSpell] > 0 && spiritHealth >= costSpirit) {
-    // Check if we aimed at a remote mirror
-    let elements = document.elementsFromPoint(mouseX, mouseY);
+    // Check if we aimed at a remote mirror (using absolute viewport coordinates)
+    let elements = document.elementsFromPoint(winMouseX, winMouseY);
     elements.forEach(el => {
       let frame = el.closest('.mirror-frame');
       if (frame && frame.id !== 'local-mirror-container' && frame.id !== '') {
