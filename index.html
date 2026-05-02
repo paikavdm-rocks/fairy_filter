@@ -69,17 +69,17 @@
 
         #mirrors-gallery {
             display: flex; flex-wrap: wrap; justify-content: center;
-            gap: 30px; width: 100%; max-width: 1400px; padding: 40px;
+            gap: 20px; width: 100%; max-width: 1600px; padding: 20px;
             opacity: 0; transition: opacity 1s; height: 0; overflow: hidden;
         }
 
         .mirror-frame {
-            flex: 0 1 400px;
-            background: rgba(15, 10, 30, 0.82); border: 3px solid var(--accent); padding: 15px; border-radius: 20px;
-            box-shadow: 0 0 30px rgba(255, 121, 198, 0.4);
-            transform: scale(0.95); transition: transform 0.3s;
+            flex: 0 1 320px; min-width: 280px;
+            background: rgba(15, 10, 30, 0.85); border: 2px solid var(--accent); padding: 12px; border-radius: 20px;
+            box-shadow: 0 0 25px rgba(255, 121, 198, 0.3);
+            transform: scale(0.95); transition: all 0.3s ease-out;
         }
-        .mirror-frame:hover { transform: scale(1); border-color: #8be9fd; }
+        .mirror-frame:hover { transform: scale(1); border-color: #00ffff; }
 
         .instructions {
             margin: 15px auto; max-width: 600px; background: var(--glass); backdrop-filter: blur(10px);

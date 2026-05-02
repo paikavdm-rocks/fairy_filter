@@ -188,7 +188,7 @@ function addRemoteVideo(remotePeerID, stream) {
     }
   }
 
-  let label = createP(remoteName + "'s Vision");
+  let label = createP(remoteName);
   label.style('margin', '0 0 10px 0');
   label.style('font-family', 'Cinzel Decorative');
   label.style('font-size', '1.2rem');
