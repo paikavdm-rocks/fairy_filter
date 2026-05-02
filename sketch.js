@@ -976,35 +976,6 @@ function drawElfEar(x, y, dir) {
   pop();
 }
 
-class Particle {
-  constructor(x, y) {
-    this.x = x;
-    this.y = y;
-    this.vx = random(-2, 2);
-    this.vy = random(-2, 2);
-    this.alpha = 255;
-    this.size = random(3, 8);
-    this.color = myFairyColor || color(255, 255, 200);
-  }
-  finished() { return this.alpha < 0; }
-  update() {
-    this.x += this.vx;
-    this.y += this.vy;
-    this.alpha -= 5;
-  }
-  show() {
-    noStroke();
-    let c = this.color;
-    fill(red(c), green(c), blue(c), this.alpha);
-    ellipse(this.x, this.y, this.size);
-    
-    // Sparkle core
-    if (random(1) > 0.8) {
-      fill(255, 255, 255, this.alpha);
-      ellipse(this.x, this.y, this.size / 2);
-    }
-  }
-}
 
 
 // Legacy fairy glow removed for system simplification
