@@ -85,13 +85,15 @@
         .mirror-frame:hover { transform: scale(1); border-color: #00ffff; }
 
         .instructions {
-            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-            width: 80%; max-width: 600px; background: rgba(20, 10, 40, 0.85); backdrop-filter: blur(15px);
-            padding: 15px; border-radius: 25px; border: 2px solid var(--accent); box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+            width: 90%; max-width: 500px; background: rgba(20, 10, 40, 0.7); backdrop-filter: blur(8px);
+            padding: 8px 15px; border-radius: 15px; border: 1px solid var(--accent);
             text-align: center; z-index: 1000; pointer-events: none;
         }
 
-        .instruction-step { font-size: 1.5rem; margin: 10px 0; color: #ffccff; font-weight: bold; }
+
+        .instruction-step { font-size: 1.1rem; margin: 5px 0; color: #ffccff; font-weight: bold; }
+
         
         .spell-inventory-bar {
             position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
@@ -177,7 +179,8 @@
         </div>
 
         <!-- Overlaid Controls -->
-        <div id="controls-container" style="position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); width: 100%; display: flex; flex-direction: column; align-items: center; z-index: 1001;">
+        <div id="controls-container" style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); width: 100%; display: flex; flex-direction: column; align-items: center; z-index: 1001;">
+
             <div id="kingdom-selection" style="display: none; flex-direction: column; align-items: center; background: rgba(0,0,0,0.7); padding: 20px; border-radius: 30px; backdrop-filter: blur(10px); border: 2px solid var(--accent);">
                 <p style="font-family: 'Cinzel Decorative'; font-size: 1.5rem; color: #fff; margin-bottom: 20px;">Choose Your Kingdom</p>
                 <div class="gem-container">
