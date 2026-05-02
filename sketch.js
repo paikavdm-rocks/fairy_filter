@@ -1320,35 +1320,48 @@ function isFist(hand) {
 function drawPlayerHud() {
   if (!myPlayerID) return;
   const hp = constrain(Number(spiritHealth) || 0, 0, 100);
-  const cx = width * 0.5;
+  
+  // Default to screen center top if no pose detected
+  let hudX = width * 0.5;
+  let hudY = 60;
+
+  // Track the nose/top-of-head if poses are available
+  if (poses && poses.length > 0 && poses[0].pose) {
+     let nose = poses[0].pose.nose;
+     // Map pose coords (mirrored potentially)
+     let mx = map(nose.x, 0, vidW(), 0, width);
+     let my = map(nose.y, 0, vidH(), 0, height);
+     hudX = width - mx; // Horizontal flip match
+     hudY = my - 100; // Position above the nose (forehead/crown area)
+  }
+  hudY = constrain(hudY, 40, height - 40); // Keep on screen
 
   push();
   blendMode(BLEND);
   rectMode(CENTER);
   noStroke();
   
-  // Minimalist health panel above head (top center)
+  // Minimalist health panel above head
   fill(12, 8, 22, 160);
-  rect(cx, 35, 180, 60, 30);
+  rect(hudX, hudY, 240, 70, 35);
 
-  drawHealthHeartsRow(cx, 18, hp);
+  drawHealthHeartsRow(hudX, hudY - 17, hp);
 
   textAlign(CENTER, CENTER);
   fill(255, 255, 255, 240);
-  textSize(22);
+  textSize(24);
   textFont('Caveat');
-  text(myPlayerName || 'Fairy', cx, 38);
+  text(myPlayerName || 'Fairy', hudX, hudY + 2);
 
   rectMode(CORNER);
-  const barW = 100;
-  const barLeft = cx - barW * 0.5;
-  const barY = 52;
+  const barW = 160;
+  const barLeft = hudX - barW * 0.5;
+  const barY = hudY + 16;
   fill(28, 20, 36, 200);
-  rect(barLeft, barY, barW, 6, 3);
+  rect(barLeft, barY, barW, 8, 4);
   fill(255, 75, 115, 245);
-  rect(barLeft, barY, map(hp, 0, 100, 0, barW), 6, 3);
-
-  pop();
+  rect(barLeft, barY, map(hp, 0, 100, 0, barW), 8, 4);
+ pop();
 }
 
 // Five hearts above the name / head; each heart represents 20% health.
