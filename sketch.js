@@ -139,6 +139,7 @@ function initFirebaseListeners() {
       
       myFairyColor = hashStringToColor(myPlayerID);
       
+      document.getElementById('account-actions').style.display = 'flex';
       initWebRTC();
       
       db.ref('players/' + myPlayerID).onDisconnect().remove();
@@ -401,7 +402,15 @@ function selectKingdom(name, clr) {
   spellContainer.style('display', 'flex');
   nextStep(3);
 }
-window.selectKingdom = selectKingdom;
+function changeUsername() {
+  currentStep = 1;
+  nextStep(1); 
+  // Show name input again
+  let nameCont = document.getElementById('name-container'); // Wait, I used p5 element
+  // I'll update sketch.js to make nameContainer global or find it
+  location.reload(); // Simplest way to reset the flow while staying logged in!
+}
+window.changeUsername = changeUsername;
 
 
   spellContainer = createDiv();
@@ -439,19 +448,7 @@ window.selectKingdom = selectKingdom;
   });
   castButton.parent(spellContainer);
   
-  let logoutBtn = createButton("🚪 SIGN OUT");
-  logoutBtn.style('padding', '12px 24px');
-  logoutBtn.style('border-radius', '30px');
-  logoutBtn.style('border', '2px solid #ffbaff');
-  logoutBtn.style('background', 'rgba(20,0,40,0.8)');
-  logoutBtn.style('color', '#ffbaff');
-  logoutBtn.style('font-family', 'Quicksand');
-  logoutBtn.style('font-weight', 'bold');
-  logoutBtn.style('cursor', 'pointer');
-  logoutBtn.mousePressed(() => {
-    auth.signOut();
-  });
-  logoutBtn.parent(spellContainer);
+
 
   feedback = createP("");
   feedback.style('color', '#ffbaff');
@@ -886,17 +883,17 @@ async function castRegionalSpell(objectPrompt) {
     const result = await response.json();
 
     if (result.output) {
-      loadImage(result.output, (incomingImage) => {
-        currentObjectTransformed = incomingImage; // The whole transformed image
-        isCasting = false;
-        feedback.html("Spell successful! Look at your new magical item!");
-        
-        // Notify others we are ready
-        if (myPlayerID) db.ref('players/' + myPlayerID + '/wandURL').set(result.output);
-        
+        loadImage(result.output, (incomingImage) => {
+          currentObjectTransformed = incomingImage; 
+          isCasting = false;
+          feedback.html("Spell successful! Look at your new magical item!");
+          
+          spellContainer.hide(); // Hide conjure UI
+          
+          if (myPlayerID) db.ref('players/' + myPlayerID + '/wandURL').set(result.output);
+          for (let i = 0; i < 60; i++) particles.push(new Particle(random(width), random(height)));
+        });
 
-        for (let i = 0; i < 60; i++) particles.push(new Particle(random(width), random(height)));
-      });
     }
   } catch (error) {
     isCasting = false;
