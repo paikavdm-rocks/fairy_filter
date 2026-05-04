@@ -269,6 +269,10 @@ let fairyFilterActive = false; // Activated after kingdom choice
 let prevHandX = null;
 let handVelocity = 0;
 let fullFairyImage = null;
+
+// Persistent face tracking for fairy filter
+let lastFacePosition = null;
+let faceLostFrames = 0;
 let isTransformingSelf = false;
 
 // Real-time Fairy Assets
@@ -771,12 +775,30 @@ class Firefly {
 }
 
 function applyFairyGlow() {
+  let pose = null;
+  
+  // Check if face is detected
   if (poses.length > 0) {
-    let pose = poses[0];
-    
-    // Draw Wings on Shoulders
-    let lShoulder = pose.left_shoulder;
-    let rShoulder = pose.right_shoulder;
+    pose = poses[0];
+    // Store current face position
+    lastFacePosition = {
+      leftShoulder: pose.left_shoulder,
+      rightShoulder: pose.right_shoulder,
+      leftEar: pose.left_ear,
+      rightEar: pose.right_ear,
+      nose: pose.nose
+    };
+    faceLostFrames = 0;
+  } else if (lastFacePosition && faceLostFrames < 60) {
+    // Use last known position for 60 frames (about 1 second)
+    pose = lastFacePosition;
+    faceLostFrames++;
+  }
+  
+  if (pose) {
+    // Draw Wings using last known or current position
+    let lShoulder = pose.leftShoulder || pose.left_shoulder;
+    let rShoulder = pose.rightShoulder || pose.right_shoulder;
     
     if (lShoulder && lShoulder.confidence > 0.1) {
       let sx = map(lShoulder.x, 0, vidW(), 0, width);
@@ -790,9 +812,9 @@ function applyFairyGlow() {
       drawWing(sx, sy, -1);
     }
     
-    // Draw Fairy Crown and Ears on the Head
-    let leftEar = pose.left_ear;
-    let rightEar = pose.right_ear;
+    // Draw Fairy Ears on the Head (no crown)
+    let leftEar = pose.leftEar || pose.left_ear;
+    let rightEar = pose.rightEar || pose.right_ear;
     let nose = pose.nose;
     
     if (nose && nose.confidence > 0.1) {
@@ -811,26 +833,54 @@ function applyFairyGlow() {
         drawElfEar(ex, ey, -1);
       }
       
-      // Draw intricate crown
-      drawCrown(nx, ny - 90);
+      // Draw health bar above head
+      drawHealthBar(nx, ny - 120);
+      
+      // NO CROWN - removed as requested
     }
     
     // Particles flowing down from wings
     if (frameCount % 3 === 0 && lShoulder && rShoulder) {
       let sx1 = map(lShoulder.x, 0, vidW(), 0, width);
       let sy1 = map(lShoulder.y, 0, vidH(), 0, height);
-      let sx2 = map(rShoulder.x, 0, vidW(), 0, width);
-      let sy2 = map(rShoulder.y, 0, vidH(), 0, height);
-      
       let p1 = new Particle(sx1 + random(-20, 20), sy1);
       p1.color = myFairyColor;
       particles.push(p1);
-      
-      let p2 = new Particle(sx2 + random(-20, 20), sy2);
-      p2.color = myFairyColor;
-      particles.push(p2);
     }
   }
+}
+
+function drawHealthBar(x, y) {
+  push();
+  
+  // Health bar dimensions
+  let barWidth = 80;
+  let barHeight = 8;
+  let healthPercent = spiritHealth / 100; // spiritHealth is 0-100
+  
+  // Background (dark red)
+  fill(50, 0, 0, 200);
+  noStroke();
+  rect(x - barWidth/2, y, barWidth, barHeight, 4);
+  
+  // Health fill (green to yellow to red based on health)
+  if (healthPercent > 0.6) {
+    fill(0, 255, 0, 200); // Green
+  } else if (healthPercent > 0.3) {
+    fill(255, 255, 0, 200); // Yellow
+  } else {
+    fill(255, 0, 0, 200); // Red
+  }
+  
+  rect(x - barWidth/2, y, barWidth * healthPercent, barHeight, 4);
+  
+  // Border
+  noFill();
+  stroke(255, 255, 255, 150);
+  strokeWeight(1);
+  rect(x - barWidth/2, y, barWidth, barHeight, 4);
+  
+  pop();
 }
 
 function drawWing(x, y, dir) {
