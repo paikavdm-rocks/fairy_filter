@@ -647,7 +647,6 @@ function draw() {
       p.color = color(255, 255, 200);
       particles.push(p);
     }
-    drawPlayerHud();
     return; // Stop the regular video logic from running!
   }
 
@@ -760,9 +759,6 @@ function draw() {
   }
 
   processLocalStatusEffects();
-
-  // HUD last so wand, particles, frame, and object layer don't paint over it
-  drawPlayerHud();
 }
 
 function processLocalStatusEffects() {
