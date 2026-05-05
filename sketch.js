@@ -356,12 +356,12 @@ function initFirebase() {
 
 function setup() {
   initFirebase();
-  // Even bigger sizing for local user to fit text elements
-  let cw = 480; // Even bigger for local user
-  let ch = 360; // 4:3 aspect ratio
+  // Much bigger sizing for local user to fit text elements
+  let cw = 560; // Much bigger for local user
+  let ch = 420; // 4:3 aspect ratio
   if (windowWidth < 768) {
-    cw = 420; // Mobile size
-    ch = 315;
+    cw = 480; // Mobile size
+    ch = 360;
   }
 
   canvas = createCanvas(cw, ch);
