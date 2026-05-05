@@ -1467,7 +1467,6 @@ function setupCombatUI() {
   const hud = document.getElementById('spell-inventory-hud');
   if (hud) hud.style.display = 'flex';
   if (spellInventoryDiv) spellInventoryDiv.style('display', 'flex');
-  if (spellStatusText) spellStatusText.html("Move your index finger to collect elemental spells. Select a spell from your inventory below and click on the video box of the player who you want to cast it at.");
   renderSpellInventory();
 }
 
