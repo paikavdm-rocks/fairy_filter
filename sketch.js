@@ -938,19 +938,21 @@ function applyFairyGlow() {
       
       // Draw fairy name above head (highest position)
       drawFairyName(nx, ny - 140);
+      
+      // Draw health bar below fairy name
+      drawHealthBar(nx, ny - 120);
+      
+      // NO CROWN - removed as requested
     } else if (lastFacePosition && lastFacePosition.nose) {
-      // Fallback: show name using last known position
+      // Fallback: show name and health bar using last known position
       let nx = map(lastFacePosition.nose.x, 0, vidW(), 0, width);
       let ny = map(lastFacePosition.nose.y, 0, vidH(), 0, height);
       drawFairyName(nx, ny - 140);
+      drawHealthBar(nx, ny - 120);
     } else {
-      // Ultimate fallback: show name at center top of screen
+      // Ultimate fallback: show name and health bar at center top of screen
       drawFairyName(width / 2, 100);
-      
-      // Draw health bar below fairy name
       drawHealthBar(width / 2, 130);
-      
-      // NO CROWN - removed as requested
     }
     
     // Particles flowing down from wings
