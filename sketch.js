@@ -356,12 +356,12 @@ function initFirebase() {
 
 function setup() {
   initFirebase();
-  // Fixed sizing to match opponent frames (uniform size)
-  let cw = 320; // Same as mirror-frame max-width
-  let ch = 240; // 4:3 aspect ratio
+  // Bigger sizing for local user to fit text elements
+  let cw = 400; // Bigger for local user
+  let ch = 300; // 4:3 aspect ratio
   if (windowWidth < 768) {
-    cw = 280; // Mobile size
-    ch = 210;
+    cw = 350; // Mobile size
+    ch = 263;
   }
 
   canvas = createCanvas(cw, ch);
