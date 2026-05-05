@@ -263,14 +263,6 @@ function addRemoteVideo(remotePeerID, stream) {
   }
   frame.style('border-color', clr);
   
-  let label = createP(remoteName);
-  label.style('margin', '0 0 10px 0');
-  label.style('font-family', 'Cinzel Decorative');
-  label.style('font-size', '1.2rem');
-  label.style('text-align', 'center');
-  label.style('color', 'var(--accent)');
-  label.parent(frame);
-  
   let vid = createElement('video');
   vid.elt.srcObject = stream;
   vid.elt.autoplay = true;
@@ -923,11 +915,11 @@ function applyFairyGlow() {
         drawElfEar(ex, ey, -1);
       }
       
-      // Draw fairy name above head
-      drawFairyName(nx, ny - 140);
-      
       // Draw health bar above head
       drawHealthBar(nx, ny - 120);
+      
+      // Draw fairy name above health bar
+      drawFairyName(nx, ny - 140);
       
       // NO CROWN - removed as requested
     }
