@@ -365,23 +365,7 @@ function setup() {
   }
 
   canvas = createCanvas(cw, ch);
-  
-  // Create frame for main video to match opponent styling
-  let mainFrame = createDiv();
-  mainFrame.class('mirror-frame');
-  mainFrame.id('main-video-frame');
-  
-  // Add label for main video
-  let mainLabel = createP(myPlayerName + " (You)");
-  mainLabel.style('margin', '0 0 10px 0');
-  mainLabel.style('font-family', 'Cinzel Decorative');
-  mainLabel.style('font-size', '1.2rem');
-  mainLabel.style('color', 'white');
-  mainLabel.style('text-shadow', '0 0 10px rgba(255, 121, 198, 0.5)');
-  mainLabel.parent(mainFrame);
-  
-  canvas.parent(mainFrame);
-  mainFrame.parent('videos-grid');
+  canvas.parent('p5-container');
   
   // Remove loading screen
   let loader = document.getElementById('loading-screen');
