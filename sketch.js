@@ -196,24 +196,15 @@ window.loginWithGoogle = loginWithGoogle;
 
 // Ready system functions
 window.setPlayerReady = function() {
-  if (!playerReady) {
-    playerReady = true;
-    let readyButton = document.getElementById('ready-button');
-    if (readyButton) {
-      readyButton.style.backgroundColor = '#FF1493'; // Dark pink when clicked
-      readyButton.style.cursor = 'not-allowed'; // Show it's been clicked
-      readyButton.style.opacity = '0.7'; // Slightly fade to show it's inactive
-      readyButton.textContent = '✨ READY!'; // Update text to show ready state
-      readyButton.style.pointerEvents = 'none'; // Disable further clicks
-    }
-    
-    // Update Firebase with ready status
-    if (myPlayerID) {
-      db.ref('players/' + myPlayerID + '/readyForOrbs').set(true);
-    }
-    
-    // Check if all players are ready
-    checkAllPlayersReady();
+  console.log("BUTTON CLICKED!");
+  
+  // Start the game immediately
+  startGlobalCountdown();
+  
+  // Hide the button
+  let readyButton = document.getElementById('ready-button');
+  if (readyButton) {
+    readyButton.style.display = 'none';
   }
 };
 
