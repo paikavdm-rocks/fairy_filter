@@ -942,8 +942,9 @@ function applyFairyGlow() {
         drawElfEar(ex, ey, -1);
       }
       
-      // Draw fairy name above health bar
-      drawFairyName(nx, ny - 140);
+      // Draw fairy name above health bar with mobile adjustment
+      let nameOffset = windowWidth < 768 ? -100 : -140; // Less offset on mobile
+      drawFairyName(nx, ny + nameOffset);
       
       // Draw health bar below fairy name (moved lower)
       drawHealthBar(nx, ny - 80);
