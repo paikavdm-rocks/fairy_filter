@@ -1248,7 +1248,7 @@ async function castRegionalSpell(objectPrompt) {
           // Automatically progress to step 4 after wand conjuring
           setTimeout(() => { 
             nextStep(4);
-          }, 1000); // Brief delay before step 4
+          }, 3000); // Longer delay before step 4
           
           spellContainer.hide(); // Hide conjure UI
           
