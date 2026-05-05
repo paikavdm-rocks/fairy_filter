@@ -132,10 +132,10 @@
 
         .videos-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
             width: 100%;
-            max-width: 1400px;
+            max-width: 1200px;
             justify-items: center;
         }
 
@@ -147,14 +147,15 @@
         }
 
         .mirror-frame {
-            flex: 0 1 320px;
-            min-width: 280px;
+            flex: 0 1 200px;
+            min-width: 180px;
+            max-width: 220px;
             background: rgba(15, 10, 30, 0.85);
             border: 2px solid var(--accent);
-            padding: 12px;
-            border-radius: 20px;
-            box-shadow: 0 0 25px rgba(255, 121, 198, 0.3);
-            transform: scale(0.95);
+            padding: 8px;
+            border-radius: 15px;
+            box-shadow: 0 0 15px rgba(255, 121, 198, 0.3);
+            transform: scale(0.85);
             transition: all 0.3s ease-out;
         }
 
