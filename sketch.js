@@ -36,7 +36,7 @@ let remotePlayers = {};
 let myPeerID = null;
 let peer = null;
 let connectedPeers = {};
-let currentStep = 1; // 1: Name, 2: Wand, 3: Gathering, 4: Duel, 5: Revelation
+let currentStep = 1; // 1: Name, 2: Wand, 3: Gathering, 4: Battle
 let spellContainer;
 let myFairyColor; // Unique to each player
 let spiritOrbs = [];
@@ -224,6 +224,12 @@ function checkAllPlayersReady() {
   if (allReady && !allPlayersReady) {
     allPlayersReady = true;
     console.log("All players ready - releasing orbs!");
+    
+    // Clear spell instructions when all players are ready
+    let spellInstructions = document.getElementById('spell-instructions');
+    if (spellInstructions) {
+      spellInstructions.style.display = 'none';
+    }
   }
 }
 
@@ -639,8 +645,6 @@ function draw() {
           handVelocity = lerp(handVelocity, speed, 0.4);
       
           if (handVelocity > 20) fairyFilterActive = true;
-
-          if (currentStep === 5) castBattleSpell();
         }
         if (wx !== null) prevHandX = (width - wx);
       }
@@ -1207,7 +1211,7 @@ function nextStep(step) {
   if (step <= currentStep) return;
   
   // Clean up old step UI
-  if (step === 5) setupCombatUI(); // Prepare buttons for Battle Phase
+  if (step === 4) setupCombatUI(); // Prepare buttons for Battle Phase
 
   // Hide current
   let prev = document.getElementById('instr-' + currentStep);
@@ -1228,6 +1232,11 @@ function nextStep(step) {
         let readyButton = document.getElementById('ready-button');
         if (readyButton) {
           readyButton.style.display = 'block';
+        }
+        // Show spell instructions
+        let spellInstructions = document.getElementById('spell-instructions');
+        if (spellInstructions) {
+          spellInstructions.style.display = 'block';
         }
         // Reset ready status for new game
         playerReady = false;
@@ -1273,7 +1282,7 @@ function updateInstructionSteps() {
   }
 
   if (currentStep === 4 && totalCollectedSpells() >= 3) {
-    nextStep(5);
+    setupCombatUI();
   }
 }
 
@@ -1469,7 +1478,7 @@ function mousePressed() {
     damage = 35; // Slightly lower damage
   }
 
-  if (currentStep === 5 && selectedSpell && spellInventory[selectedSpell] > 0 && spiritHealth >= costSpirit) {
+  if (currentStep === 4 && selectedSpell && spellInventory[selectedSpell] > 0 && spiritHealth >= costSpirit) {
 
     // Check if we aimed at a remote mirror (using absolute viewport coordinates)
     let elements = document.elementsFromPoint(winMouseX, winMouseY);
