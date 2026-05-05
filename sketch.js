@@ -853,6 +853,10 @@ function applyFairyGlow() {
 function drawFairyName(x, y) {
   push();
   
+  // Flip text back to normal orientation (since video is flipped)
+  scale(-1, 1);
+  translate(-x, -y);
+  
   // Set text properties
   textAlign(CENTER, CENTER);
   textSize(16);
@@ -860,8 +864,8 @@ function drawFairyName(x, y) {
   stroke(0, 0, 0, 150); // Black outline for better visibility
   strokeWeight(3);
   
-  // Display fairy name
-  text(myPlayerName || "Fairy", x, y);
+  // Display fairy name (now properly oriented)
+  text(myPlayerName || "Fairy", 0, 0);
   
   pop();
 }
