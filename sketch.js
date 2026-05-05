@@ -1353,6 +1353,18 @@ function nextStep(step) {
             console.log("Ready button clicked via event listener!");
             window.setPlayerReady();
           });
+          
+          // Add touch event support for mobile
+          readyButton.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            console.log("Ready button touched via touch event!");
+            window.setPlayerReady();
+          });
+          
+          readyButton.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            console.log("Touch ended on ready button");
+          });
         }
         // Show spell instructions
         let spellInstructions = document.getElementById('spell-instructions');
