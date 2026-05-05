@@ -1263,6 +1263,8 @@ async function castRegionalSpell(objectPrompt) {
             feedback.html("🔍 Discovered: " + getSpellDescription(result.output) + " spell!");
             setTimeout(() => { 
               feedback.html("");
+              // Automatically progress to step 4 after exploration
+              nextStep(4);
             }, 3000); // Show description for 3 seconds
           }, 3000); // Show exploration message for 3 seconds
           
