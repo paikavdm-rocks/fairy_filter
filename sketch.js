@@ -196,32 +196,24 @@ window.loginWithGoogle = loginWithGoogle;
 
 // Ready system functions
 window.setPlayerReady = function() {
-  console.log("Ready button clicked! playerReady:", playerReady);
   if (!playerReady) {
     playerReady = true;
     let readyButton = document.getElementById('ready-button');
     if (readyButton) {
-      console.log("Ready button found, updating to darker pink...");
       readyButton.style.backgroundColor = '#FF1493'; // Dark pink when clicked
       readyButton.style.cursor = 'not-allowed'; // Show it's been clicked
-      readyButton.style.opacity = '0.8'; // Slightly fade to show it's inactive but still visible
+      readyButton.style.opacity = '0.7'; // Slightly fade to show it's inactive
       readyButton.textContent = '✨ READY!'; // Update text to show ready state
       readyButton.style.pointerEvents = 'none'; // Disable further clicks
-      readyButton.style.transform = 'scale(0.95)'; // Slight scale down to show pressed state
-    } else {
-      console.error("Ready button not found!");
     }
     
     // Update Firebase with ready status
     if (myPlayerID) {
-      console.log("Updating Firebase with ready status for player:", myPlayerID);
       db.ref('players/' + myPlayerID + '/readyForOrbs').set(true);
     }
     
-    // Check if all players are ready and start battle
+    // Check if all players are ready
     checkAllPlayersReady();
-  } else {
-    console.log("Player already ready, ignoring click");
   }
 };
 
@@ -1348,24 +1340,6 @@ function nextStep(step) {
         let readyButton = document.getElementById('ready-button');
         if (readyButton) {
           readyButton.style.display = 'block';
-          // Add direct event listener to ensure clickability
-          readyButton.addEventListener('click', function(e) {
-            e.preventDefault();
-            console.log("Ready button clicked via event listener!");
-            window.setPlayerReady();
-          });
-          
-          // Add touch event support for mobile
-          readyButton.addEventListener('touchstart', function(e) {
-            e.preventDefault();
-            console.log("Ready button touched via touch event!");
-            window.setPlayerReady();
-          });
-          
-          readyButton.addEventListener('touchend', function(e) {
-            e.preventDefault();
-            console.log("Touch ended on ready button");
-          });
         }
         // Show spell instructions
         let spellInstructions = document.getElementById('spell-instructions');
