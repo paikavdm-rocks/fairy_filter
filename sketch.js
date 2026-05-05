@@ -471,12 +471,28 @@ function selectKingdom(name, clr) {
 }
 window.selectKingdom = selectKingdom;
 function changeUsername() {
-  currentStep = 1;
-  nextStep(1); 
-  // Show name input again
-  let nameCont = document.getElementById('name-container'); // Wait, I used p5 element
-  // I'll update sketch.js to make nameContainer global or find it
-  location.reload(); // Simplest way to reset the flow while staying logged in!
+  // Create a simple prompt for name change
+  let newName = prompt("Enter your new fairy name:", myPlayerName);
+  if (newName && newName.trim() !== "") {
+    myPlayerName = newName.trim();
+    if (nameInput) {
+      nameInput.value(myPlayerName);
+    }
+    // Update Firebase with new name
+    if (myPlayerID) {
+      db.ref('players/' + myPlayerID + '/name').set(myPlayerName);
+    }
+    // Update any UI elements that show the name
+    updateNameDisplays();
+  }
+}
+
+function updateNameDisplays() {
+  // Update any UI elements that display the player name
+  let nameElements = document.querySelectorAll('.player-name');
+  nameElements.forEach(el => {
+    el.textContent = myPlayerName;
+  });
 }
 window.changeUsername = changeUsername;
 
