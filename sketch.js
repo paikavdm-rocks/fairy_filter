@@ -938,9 +938,17 @@ function applyFairyGlow() {
       
       // Draw fairy name above head (highest position)
       drawFairyName(nx, ny - 140);
+    } else if (lastFacePosition && lastFacePosition.nose) {
+      // Fallback: show name using last known position
+      let nx = map(lastFacePosition.nose.x, 0, vidW(), 0, width);
+      let ny = map(lastFacePosition.nose.y, 0, vidH(), 0, height);
+      drawFairyName(nx, ny - 140);
+    } else {
+      // Ultimate fallback: show name at center top of screen
+      drawFairyName(width / 2, 100);
       
       // Draw health bar below fairy name
-      drawHealthBar(nx, ny - 120);
+      drawHealthBar(width / 2, 130);
       
       // NO CROWN - removed as requested
     }
@@ -965,10 +973,10 @@ function drawFairyName(x, y) {
   
   // Set text properties
   textAlign(CENTER, CENTER);
-  textSize(16);
-  fill(255, 255, 255, 200); // White text with slight transparency
-  stroke(0, 0, 0, 150); // Black outline for better visibility
-  strokeWeight(3);
+  textSize(24); // Increased size for better visibility
+  fill(255, 255, 255, 255); // Full opacity white text
+  stroke(0, 0, 0, 255); // Full opacity black outline
+  strokeWeight(4); // Thicker outline for better visibility
   
   // Display fairy name (now properly oriented)
   text(myPlayerName || "Fairy", 0, 0);
