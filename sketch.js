@@ -1292,12 +1292,9 @@ async function castRegionalSpell(objectPrompt) {
           // Start exploration phase
           feedback.html("✨ Wand conjured! Now exploring magical properties...");
           setTimeout(() => { 
-            feedback.html("🔍 Discovered: " + getSpellDescription(result.output) + " spell!");
-            setTimeout(() => { 
-              feedback.html("");
-              // Automatically progress to step 4 after exploration
-              nextStep(4);
-            }, 3000); // Show description for 3 seconds
+            feedback.html("");
+            // Automatically progress to step 4 after exploration
+            nextStep(4);
           }, 3000); // Show exploration message for 3 seconds
           
           spellContainer.hide(); // Hide conjure UI
