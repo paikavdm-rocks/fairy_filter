@@ -1347,6 +1347,12 @@ function nextStep(step) {
         let readyButton = document.getElementById('ready-button');
         if (readyButton) {
           readyButton.style.display = 'block';
+          // Add direct event listener to ensure clickability
+          readyButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log("Ready button clicked via event listener!");
+            window.setPlayerReady();
+          });
         }
         // Show spell instructions
         let spellInstructions = document.getElementById('spell-instructions');
