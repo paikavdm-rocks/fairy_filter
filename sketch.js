@@ -198,7 +198,11 @@ window.loginWithGoogle = loginWithGoogle;
 window.setPlayerReady = function() {
   if (!playerReady) {
     playerReady = true;
-    document.getElementById('ready-button').style.display = 'none';
+    let readyButton = document.getElementById('ready-button');
+    if (readyButton) {
+      readyButton.style.display = 'none';
+      readyButton.style.backgroundColor = '#FF1493'; // Dark pink when clicked
+    }
     
     // Update Firebase with ready status
     if (myPlayerID) {
@@ -231,8 +235,33 @@ function checkAllPlayersReady() {
       spellInstructions.style.display = 'none';
     }
     
+    // Start orb floating system
+    startOrbFloating();
+    
     // Start countdown when all players are ready
     startGlobalCountdown();
+  }
+}
+
+// Start floating orbs for spell collection
+function startOrbFloating() {
+  // Create floating elemental orbs for players to collect
+  for (let i = 0; i < 8; i++) {
+    let orb = {
+      x: random(50, width - 50),
+      y: random(50, height - 50),
+      vx: random(-2, 2),
+      vy: random(-2, 2),
+      type: ['fire', 'ice', 'air'][i % 3],
+      size: random(15, 25),
+      collected: false
+    };
+    spiritOrbs.push(orb);
+  }
+  
+  // Show feedback
+  if (feedback) {
+    feedback.html("✨ Elemental orbs are floating! Collect them with your index finger!");
   }
 }
 
