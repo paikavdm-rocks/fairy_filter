@@ -1482,9 +1482,16 @@ function updateInstructionSteps() {
 }
 
 function startGlobalCountdown() {
+  console.log("Starting global countdown...");
   isCountdownStarted = true;
   let overlay = document.getElementById('countdown-overlay');
-  overlay.style.display = 'flex';
+  if (overlay) {
+    overlay.style.display = 'flex';
+    console.log("Countdown overlay displayed");
+  } else {
+    console.error("Countdown overlay not found!");
+    return;
+  }
   
   let count = 3;
   let interval = setInterval(() => {
@@ -1492,14 +1499,20 @@ function startGlobalCountdown() {
     overlay.classList.remove('count-pulse');
     void overlay.offsetWidth; // Trigger reflow
     overlay.classList.add('count-pulse');
+    console.log("Countdown:", count);
     
     if (count === 0) {
       clearInterval(interval);
       overlay.style.display = 'none';
       isGameStarted = true;
+      console.log("Battle started! isGameStarted:", isGameStarted);
       hideBackButton(); // Hide back button when battle starts
       nextStep(4);
       
+      // Start battle effects
+      for (let i = 0; i < 100; i++) {
+        particles.push(new Particle(random(width), random(height)));
+      }
     }
     count--;
   }, 1000);
