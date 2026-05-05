@@ -107,7 +107,7 @@ function initFirebaseListeners() {
       // Check if any remote players became ready
       for (let pID in remotePlayers) {
         if (pID !== myPlayerID && remotePlayers[pID].readyForOrbs) {
-          checkAllPlayersReady();
+          checkAllPlayersReadyAndStartBattle();
         }
       }
 
@@ -476,6 +476,71 @@ function updateNameDisplays() {
   });
 }
 window.changeUsername = changeUsername;
+
+// Ready for battle button functionality
+window.readyForBattle = function() {
+  console.log("Ready for battle clicked!");
+  
+  // Update button state
+  let readyButton = document.getElementById('ready-for-battle-button');
+  if (readyButton) {
+    readyButton.style.backgroundColor = '#FF1493'; // Dark pink
+    readyButton.style.opacity = '0.7';
+    readyButton.textContent = '✨ READY!';
+    readyButton.style.pointerEvents = 'none'; // Disable further clicks
+  }
+  
+  // Set player ready
+  playerReady = true;
+  
+  // Update Firebase
+  if (myPlayerID) {
+    db.ref('players/' + myPlayerID + '/readyForOrbs').set(true);
+  }
+  
+  // Check if all players are ready and start battle
+  checkAllPlayersReadyAndStartBattle();
+};
+
+function checkAllPlayersReadyAndStartBattle() {
+  console.log("Checking if all players are ready...");
+  
+  // Check remote players
+  let allRemoteReady = true;
+  for (let pID in remotePlayers) {
+    if (pID !== myPlayerID && !remotePlayers[pID].readyForOrbs) {
+      allRemoteReady = false;
+      break;
+    }
+  }
+  
+  // If all players are ready, start battle
+  if (playerReady && allRemoteReady) {
+    console.log("All players ready, starting battle!");
+    startBattleSequence();
+  } else {
+    console.log("Waiting for all players to be ready...");
+  }
+}
+
+function startBattleSequence() {
+  console.log("Starting battle sequence!");
+  
+  // Hide ready button
+  let readyButton = document.getElementById('ready-for-battle-button');
+  if (readyButton) {
+    readyButton.style.display = 'none';
+  }
+  
+  // Hide spell instructions
+  let spellInstructions = document.getElementById('spell-instructions');
+  if (spellInstructions) {
+    spellInstructions.style.display = 'none';
+  }
+  
+  // Start countdown
+  startGlobalCountdown();
+}
 
 // Back button functionality
 window.goBackStep = function() {
@@ -1285,7 +1350,7 @@ function nextStep(step) {
       next.style.display = 'block';
       next.classList.add('fly-in');
       
-      // Show spell instructions for step 4
+      // Show spell instructions and ready button for step 4
       if (currentStep === 4) {
         let spellInstructions = document.getElementById('spell-instructions');
         if (spellInstructions) {
@@ -1308,6 +1373,12 @@ function nextStep(step) {
                 </div>
               </div>
           `;
+        }
+        
+        // Show ready button
+        let readyButton = document.getElementById('ready-for-battle-button');
+        if (readyButton) {
+          readyButton.style.display = 'block';
         }
         
         // Reset ready status for new game
