@@ -874,26 +874,32 @@ function applyFairyGlow() {
   }
   
   if (pose) {
-    // Draw Wings using face tracking (positioned at sides of head)
-    let leftEye = pose.leftEye || pose.left_eye;
-    let rightEye = pose.rightEye || pose.right_eye;
+    // Draw Wings using face tracking but positioned on shoulders
+    let nose = pose.nose;
     
-    if (leftEye && leftEye.confidence > 0.1) {
-      let sx = map(leftEye.x, 0, vidW(), 0, width) - 60; // Position left of left eye
-      let sy = map(leftEye.y, 0, vidH(), 0, height) + 20; // Slightly below eye level
-      drawWing(sx, sy, 1);
-    }
-    
-    if (rightEye && rightEye.confidence > 0.1) {
-      let sx = map(rightEye.x, 0, vidW(), 0, width) + 60; // Position right of right eye
-      let sy = map(rightEye.y, 0, vidH(), 0, height) + 20; // Slightly below eye level
-      drawWing(sx, sy, -1);
+    if (nose && nose.confidence > 0.1) {
+      // Use face position to calculate shoulder positions
+      let faceX = map(nose.x, 0, vidW(), 0, width);
+      let faceY = map(nose.y, 0, vidH(), 0, height);
+      
+      // Position wings on shoulders (below and wider than face)
+      let shoulderWidth = 120; // How far to extend wings from face center
+      let shoulderDrop = 80;   // How far down from face to position shoulders
+      
+      // Left wing position
+      let leftWingX = faceX - shoulderWidth;
+      let leftWingY = faceY + shoulderDrop;
+      drawWing(leftWingX, leftWingY, 1);
+      
+      // Right wing position  
+      let rightWingX = faceX + shoulderWidth;
+      let rightWingY = faceY + shoulderDrop;
+      drawWing(rightWingX, rightWingY, -1);
     }
     
     // Draw Fairy Ears on the Head (no crown)
     let leftEar = pose.leftEar || pose.left_ear;
     let rightEar = pose.rightEar || pose.right_ear;
-    let nose = pose.nose;
     
     if (nose && nose.confidence > 0.1) {
       let nx = map(nose.x, 0, vidW(), 0, width);
@@ -921,9 +927,9 @@ function applyFairyGlow() {
     }
     
     // Particles flowing down from wings
-    if (frameCount % 3 === 0 && leftEye && rightEye) {
-      let sx1 = map(leftEye.x, 0, vidW(), 0, width);
-      let sy1 = map(leftEye.y, 0, vidH(), 0, height);
+    if (frameCount % 3 === 0 && nose) {
+      let sx1 = map(nose.x, 0, vidW(), 0, width);
+      let sy1 = map(nose.y, 0, vidH(), 0, height) + 80; // Position particles at shoulder level
       let p1 = new Particle(sx1 + random(-20, 20), sy1);
       p1.color = myFairyColor;
       particles.push(p1);
