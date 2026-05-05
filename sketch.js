@@ -489,6 +489,22 @@ function updateNameDisplays() {
 }
 window.changeUsername = changeUsername;
 
+// Back button functionality
+window.goBackStep = function() {
+  if (currentStep > 1) {
+    currentStep--;
+    nextStep(currentStep);
+  }
+};
+
+// Hide back button when battle starts
+function hideBackButton() {
+  let backButton = document.getElementById('back-button');
+  if (backButton) {
+    backButton.style.display = 'none';
+  }
+}
+
 
   spellContainer = createDiv();
   spellContainer.style('display', 'none'); // Hidden until named
@@ -1317,6 +1333,7 @@ function startGlobalCountdown() {
       clearInterval(interval);
       overlay.style.display = 'none';
       isGameStarted = true;
+      hideBackButton(); // Hide back button when battle starts
       nextStep(4);
       
     }
