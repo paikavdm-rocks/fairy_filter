@@ -1200,7 +1200,7 @@ function drawWand() {
 // segmentation or 'masking'.
 async function castRegionalSpell(objectPrompt) {
   isCasting = true;
-  feedback.html("Isolating the object... turning you into a Fairy...");
+  feedback.html("Creating your wand...");
 
   // Capture flipped live feed for the AI
   let offscreen = createGraphics(width, height);
