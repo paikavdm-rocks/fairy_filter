@@ -1291,13 +1291,10 @@ async function castRegionalSpell(objectPrompt) {
           currentObjectTransformed = incomingImage; 
           isCasting = false;
           
-          // Start exploration phase
-          feedback.html("✨ Wand conjured! Now exploring magical properties...");
+          // Automatically progress to step 4 after wand conjuring
           setTimeout(() => { 
-            feedback.html("");
-            // Automatically progress to step 4 after exploration
             nextStep(4);
-          }, 3000); // Show exploration message for 3 seconds
+          }, 1000); // Brief delay before step 4
           
           spellContainer.hide(); // Hide conjure UI
           
