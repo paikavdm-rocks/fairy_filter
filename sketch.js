@@ -262,6 +262,7 @@ function addRemoteVideo(remotePeerID, stream) {
     }
   }
   frame.style('border-color', clr);
+  frame.style('--accent', clr); // Update CSS variable for consistent styling
   
   let vid = createElement('video');
   vid.elt.srcObject = stream;
