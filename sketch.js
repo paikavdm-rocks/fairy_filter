@@ -356,15 +356,32 @@ function initFirebase() {
 
 function setup() {
   initFirebase();
-  // Mobile responsive sizing
-  let cw = min(windowWidth - 40, 640);
-  let ch = cw * 0.75; // Standard 4:3
-  if (windowWidth < windowHeight) {
-    ch = cw * 1.33; // Portrait 3:4 for phones
+  // Fixed sizing to match opponent frames (uniform size)
+  let cw = 320; // Same as mirror-frame max-width
+  let ch = 240; // 4:3 aspect ratio
+  if (windowWidth < 768) {
+    cw = 280; // Mobile size
+    ch = 210;
   }
 
   canvas = createCanvas(cw, ch);
-  canvas.parent('p5-container');
+  
+  // Create frame for main video to match opponent styling
+  let mainFrame = createDiv();
+  mainFrame.class('mirror-frame');
+  mainFrame.id('main-video-frame');
+  
+  // Add label for main video
+  let mainLabel = createP(myPlayerName + " (You)");
+  mainLabel.style('margin', '0 0 10px 0');
+  mainLabel.style('font-family', 'Cinzel Decorative');
+  mainLabel.style('font-size', '1.2rem');
+  mainLabel.style('color', 'white');
+  mainLabel.style('text-shadow', '0 0 10px rgba(255, 121, 198, 0.5)');
+  mainLabel.parent(mainFrame);
+  
+  canvas.parent(mainFrame);
+  mainFrame.parent('videos-grid');
   
   // Remove loading screen
   let loader = document.getElementById('loading-screen');
