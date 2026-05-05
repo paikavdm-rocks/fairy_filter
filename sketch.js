@@ -1439,7 +1439,7 @@ function setupCombatUI() {
   const hud = document.getElementById('spell-inventory-hud');
   if (hud) hud.style.display = 'flex';
   if (spellInventoryDiv) spellInventoryDiv.style('display', 'flex');
-  if (spellStatusText) spellStatusText.html("Choose a collected spell, then click the box of whoever you want to cast it at.");
+  if (spellStatusText) spellStatusText.html("Choose a collected spell in inventory below, then click on box of whoever you want to cast it at.");
   renderSpellInventory();
 }
 
