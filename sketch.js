@@ -936,23 +936,23 @@ function applyFairyGlow() {
         drawElfEar(ex, ey, -1);
       }
       
-      // Draw health bar above fairy name
-      drawHealthBar(nx, ny - 140);
+      // Draw fairy name above health bar
+      drawFairyName(nx, ny - 140);
       
-      // Draw fairy name underneath health bar
-      drawFairyName(nx, ny - 120);
+      // Draw health bar below fairy name
+      drawHealthBar(nx, ny - 120);
       
       // NO CROWN - removed as requested
     } else if (lastFacePosition && lastFacePosition.nose) {
-      // Fallback: show health bar and name using last known position
+      // Fallback: show name and health bar using last known position
       let nx = map(lastFacePosition.nose.x, 0, vidW(), 0, width);
       let ny = map(lastFacePosition.nose.y, 0, vidH(), 0, height);
-      drawHealthBar(nx, ny - 140);
-      drawFairyName(nx, ny - 120);
+      drawFairyName(nx, ny - 140);
+      drawHealthBar(nx, ny - 120);
     } else {
-      // Ultimate fallback: show health bar and name at center top of screen
-      drawHealthBar(width / 2, 100);
-      drawFairyName(width / 2, 130);
+      // Ultimate fallback: show name and health bar at center top of screen
+      drawFairyName(width / 2, 100);
+      drawHealthBar(width / 2, 130);
     }
     
     // Particles flowing down from wings
