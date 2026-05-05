@@ -275,7 +275,7 @@ function addRemoteVideo(remotePeerID, stream) {
   vid.style('background-color', '#000');
   
   vid.parent(frame);
-  frame.parent('mirrors-gallery');
+  frame.parent('videos-grid');
 }
 
 function initWebRTC() {
@@ -354,8 +354,26 @@ function initFirebase() {
   }
 }
 
+function createLocalVideoFrame() {
+  let frame = createDiv();
+  frame.class('mirror-frame fly-in');
+  frame.id('local-video-frame');
+  
+  // Add label for local video
+  let label = createP(myPlayerName + " (You)");
+  label.style('margin', '0 0 10px 0');
+  label.style('font-family', 'Cinzel Decorative');
+  label.style('font-size', '1.2rem');
+  label.style('color', 'white');
+  label.style('text-shadow', '0 0 10px rgba(255, 121, 198, 0.5)');
+  label.parent(frame);
+  
+  frame.parent('videos-grid');
+}
+
 function setup() {
   initFirebase();
+  createLocalVideoFrame();
   // Mobile responsive sizing
   let cw = min(windowWidth - 40, 640);
   let ch = cw * 0.75; // Standard 4:3

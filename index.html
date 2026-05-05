@@ -130,6 +130,22 @@
             overflow: hidden;
         }
 
+        .videos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            width: 100%;
+            max-width: 1400px;
+            justify-items: center;
+        }
+
+        @media (max-width: 768px) {
+            .videos-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+        }
+
         .mirror-frame {
             flex: 0 1 320px;
             min-width: 280px;
@@ -440,9 +456,10 @@
         </div>
 
         <div id="mirrors-gallery">
-            <!-- Remote players appear here -->
+            <div id="videos-grid" class="videos-grid">
+                <!-- All players (local + remote) appear here -->
+            </div>
         </div>
-    </div>
 
     <!-- Persistent Spell Inventory Bar -->
     <div id="spell-inventory-hud" class="spell-inventory-bar" style="display: none;">
