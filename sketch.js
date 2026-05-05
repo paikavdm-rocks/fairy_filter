@@ -930,18 +930,16 @@ function applyFairyGlow() {
       let nx = map(nose.x, 0, vidW(), 0, width);
       let ny = map(nose.y, 0, vidH(), 0, height);
       
-      // Draw pointy ears on outside of video cam
-      if (nose && nose.confidence > 0.1) {
-        // Position ears on outside edges of video frame
-        let earY = ny - 50; // Position above face
-        
-        // Left ear on left edge of video
-        let leftEarX = width * 0.05; // 5% from left edge (further apart)
-        drawElfEar(leftEarX, earY, 1);
-        
-        // Right ear on right edge of video
-        let rightEarX = width * 0.95; // 95% from left edge (5% from right)
-        drawElfEar(rightEarX, earY, -1);
+      // Draw pointy ears using face tracking like wings
+      if (leftEar && leftEar.confidence > 0.1) {
+        let ex = map(leftEar.x, 0, vidW(), 0, width);
+        let ey = map(leftEar.y, 0, vidH(), 0, height);
+        drawElfEar(ex, ey, 1);
+      }
+      if (rightEar && rightEar.confidence > 0.1) {
+        let ex = map(rightEar.x, 0, vidW(), 0, width);
+        let ey = map(rightEar.y, 0, vidH(), 0, height);
+        drawElfEar(ex, ey, -1);
       }
       
       // Draw fairy name above health bar
