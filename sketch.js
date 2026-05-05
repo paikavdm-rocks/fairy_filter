@@ -357,10 +357,10 @@ function initFirebase() {
 function setup() {
   initFirebase();
   // Responsive sizing for local user to maintain aspect ratio
-  let cw = min(windowWidth * 0.9, 600); // Responsive width with max limit
+  let cw = min(windowWidth * 0.95, 650); // Responsive width with max limit
   let ch = cw * 0.75; // Maintain 4:3 aspect ratio
   if (windowWidth < 768) {
-    cw = min(windowWidth * 0.85, 520); // Mobile responsive width
+    cw = min(windowWidth * 0.9, 560); // Mobile responsive width
     ch = cw * 0.75; // Maintain aspect ratio on mobile
   }
 
