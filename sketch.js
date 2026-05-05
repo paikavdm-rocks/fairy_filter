@@ -1351,9 +1351,9 @@ function nextStep(step) {
 // Spell descriptions for different wand types
 function getSpellDescription(spellType) {
   const descriptions = {
-    'air-steals': '🔥 Air-Steals - Steals 20 health and freezes opponent for 3 seconds',
-    'ice-freeze': '❄️ Ice-Freeze - Freezes opponent for 5 seconds and prevents movement',
-    'fire-burn': '🔥 Fire-Burn - Burns 25 health and applies orange flame filter for 4 seconds'
+    'air-steals': '🔥 Air-Steals - Steals 10 health from clicked player',
+    'ice-freeze': '❄️ Ice-Freeze - Freezes opponent and their orbs for 5 seconds',
+    'fire-burn': '🔥 Fire-Burn - Burns opponent for 5 seconds with 20 health loss'
   };
   return descriptions[spellType] || 'Unknown spell';
 }
@@ -1361,26 +1361,20 @@ function getSpellDescription(spellType) {
 // Air-steals spell effect
 function applyAirSteals(targetPlayer) {
   if (targetPlayer && remotePlayers[targetPlayer]) {
-    // Steal health
+    // Steal health only (no freeze)
     let currentHealth = remotePlayers[targetPlayer].health || 100;
-    let newHealth = Math.max(0, currentHealth - 20);
-    
-    // Apply freeze effect
-    remotePlayers[targetPlayer].frozenUntil = Date.now() + 3000; // 3 seconds
-    remotePlayers[targetPlayer].frozen = true;
+    let newHealth = Math.max(0, currentHealth - 10);
     
     // Update health in database
     if (myPlayerID) {
       db.ref('players/' + targetPlayer + '/health').set(newHealth);
-      db.ref('players/' + targetPlayer + '/frozenUntil').set(Date.now() + 3000);
-      db.ref('players/' + targetPlayer + '/frozen').set(true);
     }
     
     // Visual feedback
     feedback.html("🔥 Air-Steals cast on " + targetPlayer + "!");
     
-    // Create freeze particles
-    for (let i = 0; i < 30; i++) {
+    // Create stealth particles
+    for (let i = 0; i < 20; i++) {
       particles.push(new Particle(random(width), random(height)));
     }
   }
@@ -1389,14 +1383,18 @@ function applyAirSteals(targetPlayer) {
 // Ice-freeze spell effect
 function applyIceFreeze(targetPlayer) {
   if (targetPlayer && remotePlayers[targetPlayer]) {
-    // Apply freeze effect
+    // Apply freeze effect to opponent and their orbs
     remotePlayers[targetPlayer].frozenUntil = Date.now() + 5000; // 5 seconds
     remotePlayers[targetPlayer].frozen = true;
+    
+    // Freeze their orbs production and movement
+    remotePlayers[targetPlayer].orbsFrozenUntil = Date.now() + 5000; // 5 seconds
     
     // Update in database
     if (myPlayerID) {
       db.ref('players/' + targetPlayer + '/frozenUntil').set(Date.now() + 5000);
       db.ref('players/' + targetPlayer + '/frozen').set(true);
+      db.ref('players/' + targetPlayer + '/orbsFrozenUntil').set(Date.now() + 5000);
     }
     
     // Visual feedback
@@ -1412,13 +1410,19 @@ function applyIceFreeze(targetPlayer) {
 // Fire-burn spell effect
 function applyFireBurn(targetPlayer) {
   if (targetPlayer && remotePlayers[targetPlayer]) {
-    // Burn health
+    // Apply burn effect for 5 seconds
+    remotePlayers[targetPlayer].burningUntil = Date.now() + 5000; // 5 seconds
+    remotePlayers[targetPlayer].burning = true;
+    
+    // Burn 20 health over 5 seconds (4 health per second)
     let currentHealth = remotePlayers[targetPlayer].health || 100;
-    let newHealth = Math.max(0, currentHealth - 25);
+    let newHealth = Math.max(0, currentHealth - 20);
     
     // Update health in database
     if (myPlayerID) {
       db.ref('players/' + targetPlayer + '/health').set(newHealth);
+      db.ref('players/' + targetPlayer + '/burningUntil').set(Date.now() + 5000);
+      db.ref('players/' + targetPlayer + '/burning').set(true);
     }
     
     // Visual feedback
