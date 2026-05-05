@@ -389,8 +389,11 @@ function setup() {
   let cw = min(windowWidth * 0.95, 650); // Responsive width with max limit
   let ch = cw * 0.75; // Maintain 4:3 aspect ratio
   if (windowWidth < 768) {
-    cw = 400; // Fixed mobile width for consistent appearance
-    ch = 300; // Fixed mobile height for proper 4:3 aspect ratio
+    // Use video's native dimensions for mobile to prevent stretching
+    let videoRatio = 4/3; // Standard webcam aspect ratio
+    let maxWidth = min(windowWidth * 0.9, 640); // Responsive but not too wide
+    cw = maxWidth;
+    ch = cw / videoRatio; // Calculate height based on video ratio
   }
 
   canvas = createCanvas(cw, ch);
