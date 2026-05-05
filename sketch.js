@@ -1498,6 +1498,7 @@ function startGlobalCountdown() {
       clearInterval(interval);
       overlay.style.display = 'none';
       isGameStarted = true;
+      allPlayersReady = true; // Set this to true for simplified game
       console.log("Battle started! isGameStarted:", isGameStarted);
       hideBackButton(); // Hide back button when battle starts
       nextStep(4);
@@ -1506,6 +1507,9 @@ function startGlobalCountdown() {
       for (let i = 0; i < 100; i++) {
         particles.push(new Particle(random(width), random(height)));
       }
+      
+      // Start orb floating immediately
+      startOrbFloating();
     }
     count--;
   }, 1000);
@@ -1514,8 +1518,10 @@ function startGlobalCountdown() {
 function handleSpiritOrbs() {
   if (!isGameStarted) return; // Orbs only after countdown
   
-  // Wait for all players to be ready before releasing orbs
-  if (!allPlayersReady) return;
+  // Start orbs when game begins (simplified for single player)
+  if (spiritOrbs.length === 0) {
+    startOrbFloating();
+  }
   
   // AIR STASIS CHECK
   let me = remotePlayers[myPlayerID] || {};
