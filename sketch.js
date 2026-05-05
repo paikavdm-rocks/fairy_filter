@@ -230,6 +230,9 @@ function checkAllPlayersReady() {
     if (spellInstructions) {
       spellInstructions.style.display = 'none';
     }
+    
+    // Start countdown when all players are ready
+    startGlobalCountdown();
   }
 }
 
@@ -1281,22 +1284,7 @@ function setupCombatUI() {
 function updateInstructionSteps() {
   if (currentStep === 1) return; // Wait for name
 
-  // Check if everyone has a wand and we're ready to start
-  if (currentStep === 3 && currentObjectTransformed && !isCountdownStarted) {
-
-    let everyoneReady = true;
-    for (let pID in remotePlayers) {
-        if (!remotePlayers[pID].wandURL) {
-            everyoneReady = false;
-            break;
-        }
-    }
-    
-    if (everyoneReady) {
-      startGlobalCountdown();
-    }
-  }
-
+  
   if (currentStep === 4 && totalCollectedSpells() >= 3) {
     setupCombatUI();
   }
