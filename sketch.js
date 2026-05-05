@@ -1447,22 +1447,27 @@ function handleSpiritOrbs() {
 let lastIndexPos = null;
 let trackingStability = 0;
 let lastValidPositions = []; // Store recent valid positions for averaging
-const TRACKING_SMOOTH = 0.5; // Higher value = less smoothing, more responsive
-const MIN_STABILITY = 5; // Lower threshold for faster response
-const POSITION_HISTORY = 3; // Fewer positions to average
+const TRACKING_SMOOTH = 0.3; // Lower value = more smoothing for stable tracking
+const MIN_STABILITY = 3; // Lower threshold for faster response
+const POSITION_HISTORY = 5; // More positions to average for smoother tracking
+const PERSISTENCE_TIME = 30; // Keep tracking for 30 frames even when hand lost
 
 function getIndexFingerPosition() {
   if (!Array.isArray(hands) || hands.length === 0 || !hands[0]) {
-    trackingStability = max(0, trackingStability - 2);
-    // Return last known position for longer, then null
-    return trackingStability > 0 ? lastIndexPos : null;
+    trackingStability = max(0, trackingStability - 1); // Decrease stability more slowly
+    // Keep returning last known position for longer persistence
+    if (trackingStability > 0 && lastIndexPos) {
+      // Apply gentle smoothing to last known position
+      return lastIndexPos;
+    }
+    return null;
   }
   
   let hand = hands[0];
   
-  // Check hand confidence first
-  if (hand.confidence < 0.3) {
-    trackingStability = max(0, trackingStability - 2);
+  // Lower confidence threshold to continue tracking even with partial hand visibility
+  if (hand.confidence < 0.2) {
+    trackingStability = max(0, trackingStability - 1);
     return trackingStability > 0 ? lastIndexPos : null;
   }
   
@@ -1481,8 +1486,8 @@ function getIndexFingerPosition() {
     tipConfidence = hand.keypoints[8].confidence || 0.5;
   }
   
-  if (!tipRaw || tipConfidence < 0.2) {
-    trackingStability = max(0, trackingStability - 2);
+  if (!tipRaw || tipConfidence < 0.1) { // Lower threshold for more persistent tracking
+    trackingStability = max(0, trackingStability - 1); // Decrease stability more slowly
     return trackingStability > 0 ? lastIndexPos : null;
   }
   
@@ -1490,7 +1495,7 @@ function getIndexFingerPosition() {
   let rawY = Array.isArray(tipRaw) ? tipRaw[1] : tipRaw.y;
   
   if (rawX === undefined || rawY === undefined) {
-    trackingStability = max(0, trackingStability - 2);
+    trackingStability = max(0, trackingStability - 1); // Decrease stability more slowly
     return trackingStability > 0 ? lastIndexPos : null;
   }
   
@@ -1523,8 +1528,8 @@ function getIndexFingerPosition() {
     newY = lerp(lastIndexPos.y, newY, TRACKING_SMOOTH);
   }
   
-  // Update tracking stability more gradually
-  trackingStability = min(trackingStability + 1, 30);
+  // Update tracking stability more gradually for longer persistence
+  trackingStability = min(trackingStability + 2, PERSISTENCE_TIME);
   
   lastIndexPos = { x: newX, y: newY };
   return lastIndexPos;
