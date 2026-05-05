@@ -434,8 +434,10 @@ function setup() {
       nameContainer.hide();
 
       
-      // Show kingdom choice
-      document.getElementById('kingdom-selection').style.display = 'flex';
+      // Show kingdom choice after 2 seconds delay
+      setTimeout(() => {
+        document.getElementById('kingdom-selection').style.display = 'flex';
+      }, 2000);
 
       // Reveal the gallery
       let gallery = document.getElementById('mirrors-gallery');
