@@ -364,7 +364,7 @@ function setup() {
   }
 
   canvas = createCanvas(cw, ch);
-  canvas.parent('videos-grid');
+  canvas.parent('p5-container');
   
   // Remove loading screen
   let loader = document.getElementById('loading-screen');
@@ -936,23 +936,23 @@ function applyFairyGlow() {
         drawElfEar(ex, ey, -1);
       }
       
-      // Draw fairy name above head (highest position)
-      drawFairyName(nx, ny - 140);
+      // Draw health bar above fairy name
+      drawHealthBar(nx, ny - 140);
       
-      // Draw health bar below fairy name
-      drawHealthBar(nx, ny - 120);
+      // Draw fairy name underneath health bar
+      drawFairyName(nx, ny - 120);
       
       // NO CROWN - removed as requested
     } else if (lastFacePosition && lastFacePosition.nose) {
-      // Fallback: show name and health bar using last known position
+      // Fallback: show health bar and name using last known position
       let nx = map(lastFacePosition.nose.x, 0, vidW(), 0, width);
       let ny = map(lastFacePosition.nose.y, 0, vidH(), 0, height);
-      drawFairyName(nx, ny - 140);
-      drawHealthBar(nx, ny - 120);
+      drawHealthBar(nx, ny - 140);
+      drawFairyName(nx, ny - 120);
     } else {
-      // Ultimate fallback: show name and health bar at center top of screen
-      drawFairyName(width / 2, 100);
-      drawHealthBar(width / 2, 130);
+      // Ultimate fallback: show health bar and name at center top of screen
+      drawHealthBar(width / 2, 100);
+      drawFairyName(width / 2, 130);
     }
     
     // Particles flowing down from wings
@@ -990,8 +990,8 @@ function drawHealthBar(x, y) {
   push();
   
   // Health bar dimensions
-  let barWidth = 80;
-  let barHeight = 8;
+  let barWidth = 120;
+  let barHeight = 12;
   let healthPercent = spiritHealth / 100; // spiritHealth is 0-100
   
   // Background (dark red)
