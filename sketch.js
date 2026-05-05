@@ -918,11 +918,11 @@ function applyFairyGlow() {
         drawElfEar(ex, ey, -1);
       }
       
-      // Draw health bar above head
-      drawHealthBar(nx, ny - 120);
-      
-      // Draw fairy name above health bar
+      // Draw fairy name above head (highest position)
       drawFairyName(nx, ny - 140);
+      
+      // Draw health bar below fairy name
+      drawHealthBar(nx, ny - 120);
       
       // NO CROWN - removed as requested
     }
