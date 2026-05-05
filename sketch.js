@@ -1319,15 +1319,15 @@ function nextStep(step) {
               <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 20px;">
                 <div style="background: rgba(0,0,0,0.8); padding: 15px; border-radius: 10px; border: 1px solid #00ffff;">
                   <h4 style="margin: 0 0 10px; color: #ff00ff; font-size: 1.2rem;">🔥 Air-Steals</h4>
-                  <p style="margin: 5px 0; color: white;">Steals 20 health and freezes opponent for 3 seconds</p>
+                  <p style="margin: 5px 0; color: white;">Steals 10 health from clicked player</p>
                 </div>
                 <div style="background: rgba(0,0,0,0.8); padding: 15px; border-radius: 10px; border: 1px solid #00ffff;">
                   <h4 style="margin: 0 0 10px; color: #00ffff; font-size: 1.2rem;">❄️ Ice-Freeze</h4>
-                  <p style="margin: 5px 0; color: white;">Freezes opponent for 5 seconds and prevents movement</p>
+                  <p style="margin: 5px 0; color: white;">Freezes opponent and their orbs for 5 seconds</p>
                 </div>
                 <div style="background: rgba(0,0,0,0.8); padding: 15px; border-radius: 10px; border: 1px solid #00ffff;">
                   <h4 style="margin: 0 0 10px; color: #ff6600; font-size: 1.2rem;">🔥 Fire-Burn</h4>
-                  <p style="margin: 5px 0; color: white;">Burns 25 health and applies orange flame filter for 4 seconds</p>
+                  <p style="margin: 5px 0; color: white;">Burns opponent for 5 seconds with 20 health loss</p>
                 </div>
               </div>
           `;
