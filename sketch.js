@@ -936,11 +936,11 @@ function applyFairyGlow() {
         let earY = ny - 50; // Position above face
         
         // Left ear on left edge of video
-        let leftEarX = width * 0.1; // 10% from left edge
+        let leftEarX = width * 0.05; // 5% from left edge (further apart)
         drawElfEar(leftEarX, earY, 1);
         
         // Right ear on right edge of video
-        let rightEarX = width * 0.9; // 90% from left edge (10% from right)
+        let rightEarX = width * 0.95; // 95% from left edge (5% from right)
         drawElfEar(rightEarX, earY, -1);
       }
       
