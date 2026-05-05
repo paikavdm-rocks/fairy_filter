@@ -580,16 +580,13 @@ function draw() {
         let wx = wristPoint.x !== undefined ? wristPoint.x : (Array.isArray(wristPoint) ? wristPoint[0] : null);
         let wy = wristPoint.y !== undefined ? wristPoint.y : (Array.isArray(wristPoint) ? wristPoint[1] : null);
         
-        let fist = isFist(hand);
-
         if (wx !== null && prevHandX !== null && currentObjectTransformed && !fullFairyImage && !isTransformingSelf) {
           let speed = abs((width - wx) - prevHandX);
           handVelocity = lerp(handVelocity, speed, 0.4);
       
-          if (fist) fairyFilterActive = true;
-          if (!fist && handVelocity > 20) fairyFilterActive = true;
+          if (handVelocity > 20) fairyFilterActive = true;
 
-          if (fist && currentStep === 5) castBattleSpell();
+          if (currentStep === 5) castBattleSpell();
         }
         if (wx !== null) prevHandX = (width - wx);
       }
@@ -1529,7 +1526,7 @@ async function castBattleSpell() {
     }
   } catch (error) {
     isTransformingSelf = false;
-    feedback.html("The Battle Spell was interrupted! Try your fist gesture again.");
+    feedback.html("The Battle Spell was interrupted! Please try again.");
   }
 }
 
@@ -1570,26 +1567,6 @@ class Particle {
   }
 }
 
-function isFist(hand) {
-  if (!hand || !hand.keypoints) return false;
-  let foldedFingers = 0;
-  let wrist = hand.keypoints[0];
-  let fingers = [
-    { tip: 8, mcp: 5 },   // Index
-    { tip: 12, mcp: 9 },  // Middle
-    { tip: 16, mcp: 13 }, // Ring
-    { tip: 20, mcp: 17 }  // Pinky
-  ];
-  for (let f of fingers) {
-    let tip = hand.keypoints[f.tip];
-    let mcp = hand.keypoints[f.mcp];
-    if (!tip || !mcp) continue;
-    let dTip = dist(wrist.x, wrist.y, tip.x, tip.y);
-    let dMcp = dist(wrist.x, wrist.y, mcp.x, mcp.y);
-    if (dTip < dMcp * 1.5) foldedFingers++;
-  }
-  return foldedFingers >= 3;
-}
 
 function drawPlayerHud() {
   if (!myPlayerID || currentStep < 2) return;
