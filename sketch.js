@@ -581,18 +581,19 @@ function hideBackButton() {
 
   // Hand and Body tracking
   video = createCapture(constraints, function () {
-    // Handpose with improved configuration
+    // Handpose with optimized configuration for reduced lag
     handPose = ml5.handPose(video, { 
       flipHorizontal: false,
-      maxContinuousChecks: 5,
-      detectionConfidence: 0.7,
-      iouThreshold: 0.3
+      maxContinuousChecks: 3,
+      detectionConfidence: 0.6,
+      iouThreshold: 0.4,
+      modelType: "lite"
     }, () => {
       console.log("Hand tracker ready");
       handPose.detectStart(video, (results) => {
         // Filter results by confidence
         hands = results.filter(hand => {
-          return hand.confidence > 0.5;
+          return hand.confidence > 0.4;
         });
       });
     });
@@ -1429,9 +1430,9 @@ function handleSpiritOrbs() {
 let lastIndexPos = null;
 let trackingStability = 0;
 let lastValidPositions = []; // Store recent valid positions for averaging
-const TRACKING_SMOOTH = 0.08; // More aggressive smoothing
-const MIN_STABILITY = 10; // Require more stable tracking before smoothing
-const POSITION_HISTORY = 5; // Number of positions to average
+const TRACKING_SMOOTH = 0.5; // Higher value = less smoothing, more responsive
+const MIN_STABILITY = 5; // Lower threshold for faster response
+const POSITION_HISTORY = 3; // Fewer positions to average
 
 function getIndexFingerPosition() {
   if (!Array.isArray(hands) || hands.length === 0 || !hands[0]) {
