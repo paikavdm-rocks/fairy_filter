@@ -1237,7 +1237,8 @@ async function castRegionalSpell(objectPrompt) {
         loadImage(result.output, (incomingImage) => {
           currentObjectTransformed = incomingImage; 
           isCasting = false;
-          feedback.html("Spell successful! Look at your new magical item!");
+          feedback.html("Spell successful!");
+          setTimeout(() => { feedback.html(""); }, 2000); // Clear after 2 seconds
           
           spellContainer.hide(); // Hide conjure UI
           
