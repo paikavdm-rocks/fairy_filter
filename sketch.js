@@ -201,12 +201,13 @@ window.setPlayerReady = function() {
     playerReady = true;
     let readyButton = document.getElementById('ready-button');
     if (readyButton) {
-      console.log("Ready button found, updating state...");
+      console.log("Ready button found, updating to darker pink...");
       readyButton.style.backgroundColor = '#FF1493'; // Dark pink when clicked
       readyButton.style.cursor = 'not-allowed'; // Show it's been clicked
-      readyButton.style.opacity = '0.7'; // Slightly fade to show it's inactive
+      readyButton.style.opacity = '0.8'; // Slightly fade to show it's inactive but still visible
       readyButton.textContent = '✨ READY!'; // Update text to show ready state
       readyButton.style.pointerEvents = 'none'; // Disable further clicks
+      readyButton.style.transform = 'scale(0.95)'; // Slight scale down to show pressed state
     } else {
       console.error("Ready button not found!");
     }
@@ -217,7 +218,7 @@ window.setPlayerReady = function() {
       db.ref('players/' + myPlayerID + '/readyForOrbs').set(true);
     }
     
-    // Check if all players are ready
+    // Check if all players are ready and start battle
     checkAllPlayersReady();
   } else {
     console.log("Player already ready, ignoring click");
