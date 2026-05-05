@@ -196,23 +196,31 @@ window.loginWithGoogle = loginWithGoogle;
 
 // Ready system functions
 window.setPlayerReady = function() {
+  console.log("Ready button clicked! playerReady:", playerReady);
   if (!playerReady) {
     playerReady = true;
     let readyButton = document.getElementById('ready-button');
     if (readyButton) {
+      console.log("Ready button found, updating state...");
       readyButton.style.backgroundColor = '#FF1493'; // Dark pink when clicked
       readyButton.style.cursor = 'not-allowed'; // Show it's been clicked
       readyButton.style.opacity = '0.7'; // Slightly fade to show it's inactive
       readyButton.textContent = '✨ READY!'; // Update text to show ready state
+      readyButton.style.pointerEvents = 'none'; // Disable further clicks
+    } else {
+      console.error("Ready button not found!");
     }
     
     // Update Firebase with ready status
     if (myPlayerID) {
+      console.log("Updating Firebase with ready status for player:", myPlayerID);
       db.ref('players/' + myPlayerID + '/readyForOrbs').set(true);
     }
     
     // Check if all players are ready
     checkAllPlayersReady();
+  } else {
+    console.log("Player already ready, ignoring click");
   }
 };
 
@@ -1290,6 +1298,9 @@ async function castRegionalSpell(objectPrompt) {
         loadImage(result.output, (incomingImage) => {
           currentObjectTransformed = incomingImage; 
           isCasting = false;
+          
+          // Clear the "creating your wand..." text
+          feedback.html("");
           
           // Automatically progress to step 4 after wand conjuring
           setTimeout(() => { 
