@@ -364,7 +364,7 @@ function setup() {
   }
 
   canvas = createCanvas(cw, ch);
-  canvas.parent('p5-container');
+  canvas.parent('videos-grid');
   
   // Remove loading screen
   let loader = document.getElementById('loading-screen');
