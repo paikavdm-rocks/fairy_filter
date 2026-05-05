@@ -927,12 +927,12 @@ function applyFairyGlow() {
       
       // Draw pointy ears
       if (leftEar && leftEar.confidence > 0.1) {
-        let ex = map(leftEar.x, 0, vidW(), 0, width) - 15; // Move further apart (left)
+        let ex = map(leftEar.x, 0, vidW(), 0, width) - 30; // Move further apart (left)
         let ey = map(leftEar.y, 0, vidH(), 0, height) - 10; // Move higher up
         drawElfEar(ex, ey, 1);
       }
       if (rightEar && rightEar.confidence > 0.1) {
-        let ex = map(rightEar.x, 0, vidW(), 0, width) + 15; // Move further apart (right)
+        let ex = map(rightEar.x, 0, vidW(), 0, width) + 30; // Move further apart (right)
         let ey = map(rightEar.y, 0, vidH(), 0, height) - 10; // Move higher up
         drawElfEar(ex, ey, -1);
       }
