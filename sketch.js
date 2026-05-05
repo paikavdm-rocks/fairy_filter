@@ -356,12 +356,12 @@ function initFirebase() {
 
 function setup() {
   initFirebase();
-  // Much bigger sizing for local user to fit text elements
-  let cw = 560; // Much bigger for local user
-  let ch = 420; // 4:3 aspect ratio
+  // Responsive sizing for local user to maintain aspect ratio
+  let cw = min(windowWidth * 0.9, 600); // Responsive width with max limit
+  let ch = cw * 0.75; // Maintain 4:3 aspect ratio
   if (windowWidth < 768) {
-    cw = 480; // Mobile size
-    ch = 360;
+    cw = min(windowWidth * 0.85, 520); // Mobile responsive width
+    ch = cw * 0.75; // Maintain aspect ratio on mobile
   }
 
   canvas = createCanvas(cw, ch);
@@ -695,7 +695,7 @@ function draw() {
           let speed = abs((width - wx) - prevHandX);
           handVelocity = lerp(handVelocity, speed, 0.4);
       
-          if (handVelocity > 20) fairyFilterActive = true;
+          if (handVelocity > 20 && !fairyFilterActive) fairyFilterActive = true;
         }
         if (wx !== null) prevHandX = (width - wx);
       }
@@ -930,16 +930,18 @@ function applyFairyGlow() {
       let nx = map(nose.x, 0, vidW(), 0, width);
       let ny = map(nose.y, 0, vidH(), 0, height);
       
-      // Draw pointy ears
-      if (leftEar && leftEar.confidence > 0.1) {
-        let ex = map(leftEar.x, 0, vidW(), 0, width) - 30; // Move further apart (left)
-        let ey = map(leftEar.y, 0, vidH(), 0, height) - 10; // Move higher up
-        drawElfEar(ex, ey, 1);
-      }
-      if (rightEar && rightEar.confidence > 0.1) {
-        let ex = map(rightEar.x, 0, vidW(), 0, width) + 30; // Move further apart (right)
-        let ey = map(rightEar.y, 0, vidH(), 0, height) - 10; // Move higher up
-        drawElfEar(ex, ey, -1);
+      // Draw pointy ears on outside of video cam
+      if (nose && nose.confidence > 0.1) {
+        // Position ears on outside edges of video frame
+        let earY = ny - 50; // Position above face
+        
+        // Left ear on left edge of video
+        let leftEarX = width * 0.1; // 10% from left edge
+        drawElfEar(leftEarX, earY, 1);
+        
+        // Right ear on right edge of video
+        let rightEarX = width * 0.9; // 90% from left edge (10% from right)
+        drawElfEar(rightEarX, earY, -1);
       }
       
       // Draw fairy name above health bar
@@ -1273,7 +1275,8 @@ async function castRegionalSpell(objectPrompt) {
 
 // Helper to manage step progression
 function nextStep(step) {
-  if (step <= currentStep) return;
+  // Allow backward navigation for back button
+  if (step === currentStep) return;
   
   // Clean up old step UI
   if (step === 4) setupCombatUI(); // Prepare buttons for Battle Phase
@@ -1435,10 +1438,10 @@ function handleSpiritOrbs() {
 let lastIndexPos = null;
 let trackingStability = 0;
 let lastValidPositions = []; // Store recent valid positions for averaging
-const TRACKING_SMOOTH = 0.3; // Lower value = more smoothing for stable tracking
-const MIN_STABILITY = 3; // Lower threshold for faster response
-const POSITION_HISTORY = 5; // More positions to average for smoother tracking
-const PERSISTENCE_TIME = 30; // Keep tracking for 30 frames even when hand lost
+const TRACKING_SMOOTH = 0.15; // Much lower value = very smooth tracking like original
+const MIN_STABILITY = 5; // Higher threshold for more stable tracking
+const POSITION_HISTORY = 8; // More positions to average for much smoother tracking
+const PERSISTENCE_TIME = 20; // Shorter persistence for more responsive tracking
 
 function getIndexFingerPosition() {
   if (!Array.isArray(hands) || hands.length === 0 || !hands[0]) {
@@ -1546,6 +1549,29 @@ window.selectSpell = function(type) {
   mySpellChoice = type;
   if (myPlayerID) db.ref('players/' + myPlayerID + '/choice').set(mySpellChoice);
   if (spellStatusText) spellStatusText.html(`✨ ${elementalSpells[type].icon} ${type} focus active! Click a target to cast.`);
+  renderSpellInventory();
+};
+
+window.selectKingdom = function(kingdom, color) {
+  if (spellInventory[kingdom] <= 0) {
+    if (spellStatusText) spellStatusText.html(`✨ You need more ${elementalSpells[kingdom].icon} ${kingdom} spirit to cast this!`);
+    return;
+  }
+  selectedSpell = kingdom;
+  mySpellChoice = kingdom;
+  if (myPlayerID) db.ref('players/' + myPlayerID + '/choice').set(mySpellChoice);
+  if (spellStatusText) spellStatusText.html(`✨ ${elementalSpells[kingdom].icon} ${kingdom} focus active! Click a target to cast.`);
+}
+
+window.changeKingdomOnly = function(kingdom, color) {
+  if (spellInventory[kingdom] <= 0) {
+    if (spellStatusText) spellStatusText.html(`✨ You need more ${elementalSpells[kingdom].icon} ${kingdom} spirit to cast this!`);
+    return;
+  }
+  selectedSpell = kingdom;
+  mySpellChoice = kingdom;
+  if (myPlayerID) db.ref('players/' + myPlayerID + '/choice').set(mySpellChoice);
+  if (spellStatusText) spellStatusText.html(`✨ ${elementalSpells[kingdom].icon} ${kingdom} focus active! Click a target to cast.`);
   renderSpellInventory();
 };
 
@@ -1880,6 +1906,10 @@ function getObjectPosition() {
 
   if (lastWandX !== null && lastWandY !== null) {
     return { x: lastWandX, y: lastWandY };
+  }
+  // Allow wand to exit video box when no hand is detected
+  if (hands.length === 0 || !hands[0]) {
+    return { x: cx, y: cy }; // Return center when no hand
   }
   return { x: cx, y: cy };
 }
