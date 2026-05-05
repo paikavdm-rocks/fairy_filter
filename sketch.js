@@ -194,48 +194,7 @@ function loginWithGoogle() {
 window.loginWithEmail = loginWithEmail;
 window.loginWithGoogle = loginWithGoogle;
 
-// Ready system functions
-window.setPlayerReady = function() {
-  console.log("BUTTON CLICKED!");
-  
-  // Start the game immediately
-  startGlobalCountdown();
-  
-  // Hide the button
-  let readyButton = document.getElementById('ready-button');
-  if (readyButton) {
-    readyButton.style.display = 'none';
-  }
-};
 
-function checkAllPlayersReady() {
-  let allReady = playerReady;
-  
-  // Check if all remote players are ready
-  for (let pID in remotePlayers) {
-    if (!remotePlayers[pID].readyForOrbs) {
-      allReady = false;
-      break;
-    }
-  }
-  
-  if (allReady && !allPlayersReady) {
-    allPlayersReady = true;
-    console.log("All players ready - releasing orbs!");
-    
-    // Clear spell instructions when all players are ready
-    let spellInstructions = document.getElementById('spell-instructions');
-    if (spellInstructions) {
-      spellInstructions.style.display = 'none';
-    }
-    
-    // Start orb floating system
-    startOrbFloating();
-    
-    // Start countdown when all players are ready
-    startGlobalCountdown();
-  }
-}
 
 // Start floating orbs for spell collection
 function startOrbFloating() {
@@ -1326,13 +1285,8 @@ function nextStep(step) {
       next.style.display = 'block';
       next.classList.add('fly-in');
       
-      // Show ready button for step 4
+      // Show spell instructions for step 4
       if (currentStep === 4) {
-        let readyButton = document.getElementById('ready-button');
-        if (readyButton) {
-          readyButton.style.display = 'block';
-        }
-        // Show spell instructions
         let spellInstructions = document.getElementById('spell-instructions');
         if (spellInstructions) {
           spellInstructions.style.display = 'block';
@@ -1355,6 +1309,7 @@ function nextStep(step) {
               </div>
           `;
         }
+        
         // Reset ready status for new game
         playerReady = false;
         allPlayersReady = false;
