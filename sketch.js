@@ -539,15 +539,31 @@ window.changeUsername = changeUsername;
   spellInventoryDiv.parent(controls);
   renderSpellInventory();
 
-  let constraints = { audio: false, video: { facingMode: "user" } };
+  let constraints = { 
+  audio: false, 
+  video: { 
+    facingMode: "user",
+    width: { ideal: 640 },
+    height: { ideal: 480 },
+    frameRate: { ideal: 30 }
+  } 
+};
 
   // Hand and Body tracking
   video = createCapture(constraints, function () {
-    // Handpose
-    handPose = ml5.handPose(video, { flipHorizontal: false }, () => {
+    // Handpose with improved configuration
+    handPose = ml5.handPose(video, { 
+      flipHorizontal: false,
+      maxContinuousChecks: 5,
+      detectionConfidence: 0.7,
+      iouThreshold: 0.3
+    }, () => {
       console.log("Hand tracker ready");
       handPose.detectStart(video, (results) => {
-        hands = results;
+        // Filter results by confidence
+        hands = results.filter(hand => {
+          return hand.confidence > 0.5;
+        });
       });
     });
 
@@ -1382,14 +1398,21 @@ function handleSpiritOrbs() {
 }
 
 let lastIndexPos = null;
+let trackingStability = 0;
+const TRACKING_SMOOTH = 0.15;
 
 function getIndexFingerPosition() {
   if (!Array.isArray(hands) || hands.length === 0 || !hands[0]) {
-    return lastIndexPos; // Stick to last known
+    trackingStability = max(0, trackingStability - 1);
+    // Return last known position for a few frames, then null
+    return trackingStability > 0 ? lastIndexPos : null;
   }
+  
   let hand = hands[0];
   let tipRaw = null;
-  if (hand.annotations && hand.annotations.indexFinger) {
+  
+  // Try multiple methods to get index finger tip
+  if (hand.annotations && hand.annotations.indexFinger && hand.annotations.indexFinger[3]) {
     tipRaw = hand.annotations.indexFinger[3];
   } else if (hand.landmarks && hand.landmarks.length > 8) {
     tipRaw = hand.landmarks[8];
@@ -1397,16 +1420,33 @@ function getIndexFingerPosition() {
     tipRaw = hand.keypoints[8];
   }
   
-  if (!tipRaw) return lastIndexPos;
+  if (!tipRaw) {
+    trackingStability = max(0, trackingStability - 1);
+    return trackingStability > 0 ? lastIndexPos : null;
+  }
   
   let rawX = Array.isArray(tipRaw) ? tipRaw[0] : tipRaw.x;
   let rawY = Array.isArray(tipRaw) ? tipRaw[1] : tipRaw.y;
-  if (rawX === undefined || rawY === undefined) return lastIndexPos;
   
-  lastIndexPos = {
-    x: width - map(rawX, 0, vidW(), 0, width),
-    y: map(rawY, 0, vidH(), 0, height)
-  };
+  if (rawX === undefined || rawY === undefined) {
+    trackingStability = max(0, trackingStability - 1);
+    return trackingStability > 0 ? lastIndexPos : null;
+  }
+  
+  // Map coordinates with better precision
+  let newX = width - map(rawX, 0, vidW(), 0, width);
+  let newY = map(rawY, 0, vidH(), 0, height);
+  
+  // Apply smoothing if we have a previous position
+  if (lastIndexPos && trackingStability > 5) {
+    newX = lerp(lastIndexPos.x, newX, TRACKING_SMOOTH);
+    newY = lerp(lastIndexPos.y, newY, TRACKING_SMOOTH);
+  }
+  
+  // Update tracking stability
+  trackingStability = min(trackingStability + 2, 20);
+  
+  lastIndexPos = { x: newX, y: newY };
   return lastIndexPos;
 }
 
