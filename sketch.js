@@ -356,12 +356,12 @@ function initFirebase() {
 
 function setup() {
   initFirebase();
-  // Bigger sizing for local user to fit text elements
-  let cw = 400; // Bigger for local user
-  let ch = 300; // 4:3 aspect ratio
+  // Even bigger sizing for local user to fit text elements
+  let cw = 480; // Even bigger for local user
+  let ch = 360; // 4:3 aspect ratio
   if (windowWidth < 768) {
-    cw = 350; // Mobile size
-    ch = 263;
+    cw = 420; // Mobile size
+    ch = 315;
   }
 
   canvas = createCanvas(cw, ch);
@@ -511,16 +511,20 @@ function hideBackButton() {
 
   spellContainer = createDiv();
   spellContainer.style('display', 'none'); // Hidden until named
-  spellContainer.style('gap', '10px');
+  spellContainer.style('gap', '8px');
+  spellContainer.style('padding', '8px');
+  spellContainer.style('background', 'rgba(0,0,0,0.7)');
+  spellContainer.style('border-radius', '15px');
+  spellContainer.style('border', '1px solid var(--accent)');
   spellContainer.parent(inputRow);
 
   let input_image_field = createInput("turn any object into a wand");
   input_image_field.style('width', '100%');
-  input_image_field.style('max-width', '250px');
+  input_image_field.style('max-width', '200px');
   input_image_field.id("input_image_prompt");
-  input_image_field.style('padding', '12px 20px');
-  input_image_field.style('border-radius', '30px');
-  input_image_field.style('border', '2px solid #ff00ff');
+  input_image_field.style('padding', '8px 15px');
+  input_image_field.style('border-radius', '20px');
+  input_image_field.style('border', '1px solid #ff00ff');
   input_image_field.style('background', 'rgba(20,0,40,0.8)');
   input_image_field.style('color', 'white');
   input_image_field.style('font-family', 'Quicksand');
@@ -529,16 +533,16 @@ function hideBackButton() {
   input_image_field.parent(spellContainer);
 
   let castButton = createButton("✨ CREATE WAND ✨");
-  castButton.style('padding', '12px 24px');
-  castButton.style('border-radius', '30px');
+  castButton.style('padding', '8px 16px');
+  castButton.style('border-radius', '20px');
   castButton.style('border', 'none');
   castButton.style('background', 'linear-gradient(90deg, #ff00ff, #00ffff)');
   castButton.style('color', 'black');
   castButton.style('font-family', 'Quicksand');
   castButton.style('font-weight', 'bold');
   castButton.style('cursor', 'pointer');
-  castButton.style('font-size', '1rem');
-  castButton.style('box-shadow', '0 0 15px rgba(255, 0, 255, 0.5)');
+  castButton.style('font-size', '0.9rem');
+  castButton.style('box-shadow', '0 0 10px rgba(255, 0, 255, 0.5)');
   castButton.mousePressed(() => {
     castRegionalSpell(input_image_field.value());
   });
