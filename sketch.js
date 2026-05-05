@@ -43,6 +43,10 @@ let spiritOrbs = [];
 let fairyMana = 0;
 let spiritHealth = 100;
 let mySpellChoice = 'Fire';
+
+// Ready system for orb release
+let playerReady = false;
+let allPlayersReady = false;
 let selectedSpell = null;
 let spellInventoryDiv;
 let spellStatusText;
@@ -100,23 +104,38 @@ function initFirebaseListeners() {
         spiritHealth = data[myPlayerID].spirit || 100;
       }
 
+      // Check if any remote players became ready
+      for (let pID in remotePlayers) {
+        if (pID !== myPlayerID && remotePlayers[pID].readyForOrbs) {
+          checkAllPlayersReady();
+        }
+      }
+
       // Scan for new connections to form WebRTC peer tunnels
       for (let pID in remotePlayers) {
         if (pID === myPlayerID) continue; // Skip ourselves
         
         let remotePeerID = remotePlayers[pID].peerID;
+        console.log("Checking remote player:", pID, "PeerID:", remotePeerID, "MyPeerID:", myPeerID);
         
         // Only invoke the phone call logic if we haven't already shaken hands
         // The tie-breaker mathematical standard string-comp avoids an infinite race collision!
         if (remotePeerID && myPeerID && !connectedPeers[remotePeerID]) {
+          console.log("Comparing peer IDs:", myPeerID, "vs", remotePeerID, "Should call:", myPeerID > remotePeerID);
           if (myPeerID > remotePeerID) {
             // Send them our live P5 canvas as a literal video stream at 20 FPS (more stable)
+            console.log("Initiating call to", remotePeerID);
             let localStream = document.querySelector('canvas').captureStream(20);
             let call = peer.call(remotePeerID, localStream);
             connectedPeers[remotePeerID] = true;
             
             call.on('stream', (remoteStream) => {
+              console.log("Received stream from", remotePeerID);
               addRemoteVideo(remotePeerID, remoteStream);
+            });
+            
+            call.on('error', (err) => {
+              console.error("Call error to", remotePeerID, ":", err);
             });
           }
         }
@@ -135,7 +154,6 @@ function initFirebaseListeners() {
       myPlayerID = user.uid;
       myPlayerName = user.email ? user.email.split('@')[0] : "Fairy"; 
       
-      
       if (nameInput) nameInput.value(myPlayerName);
       
       myFairyColor = hashStringToColor(myPlayerID);
@@ -144,6 +162,9 @@ function initFirebaseListeners() {
       initWebRTC();
       
       db.ref('players/' + myPlayerID).onDisconnect().remove();
+      
+      // Update Firebase with ready status
+      db.ref('players/' + myPlayerID + '/readyForOrbs').set(false);
     } else {
       document.getElementById('login-overlay').style.display = 'flex';
       myPlayerID = null;
@@ -172,6 +193,39 @@ function loginWithGoogle() {
 
 window.loginWithEmail = loginWithEmail;
 window.loginWithGoogle = loginWithGoogle;
+
+// Ready system functions
+window.setPlayerReady = function() {
+  if (!playerReady) {
+    playerReady = true;
+    document.getElementById('ready-button').style.display = 'none';
+    
+    // Update Firebase with ready status
+    if (myPlayerID) {
+      db.ref('players/' + myPlayerID + '/readyForOrbs').set(true);
+    }
+    
+    // Check if all players are ready
+    checkAllPlayersReady();
+  }
+};
+
+function checkAllPlayersReady() {
+  let allReady = playerReady;
+  
+  // Check if all remote players are ready
+  for (let pID in remotePlayers) {
+    if (!remotePlayers[pID].readyForOrbs) {
+      allReady = false;
+      break;
+    }
+  }
+  
+  if (allReady && !allPlayersReady) {
+    allPlayersReady = true;
+    console.log("All players ready - releasing orbs!");
+  }
+}
 
 // Authentication State Listener
 function addRemoteVideo(remotePeerID, stream) {
@@ -1169,6 +1223,20 @@ function nextStep(step) {
       next.style.display = 'block';
       next.classList.add('fly-in');
       
+      // Show ready button for step 4
+      if (currentStep === 4) {
+        let readyButton = document.getElementById('ready-button');
+        if (readyButton) {
+          readyButton.style.display = 'block';
+        }
+        // Reset ready status for new game
+        playerReady = false;
+        allPlayersReady = false;
+        if (myPlayerID) {
+          db.ref('players/' + myPlayerID + '/readyForOrbs').set(false);
+        }
+      }
+      
       // Trigger special "explosion" effects
       for (let i = 0; i < 50; i++) {
           particles.push(new Particle(width / 2, height / 2));
@@ -1235,9 +1303,16 @@ function startGlobalCountdown() {
 function handleSpiritOrbs() {
   if (!isGameStarted) return; // Orbs only after countdown
   
+  // Wait for all players to be ready before releasing orbs
+  if (!allPlayersReady) return;
+  
   // AIR STASIS CHECK
   let me = remotePlayers[myPlayerID] || {};
-  if (me.stasisUntil && me.stasisUntil > Date.now()) return;
+  let isStasis = me.stasisUntil && me.stasisUntil > Date.now();
+  if (isStasis) {
+    spiritOrbs = [];
+    return;
+  }
 
   let spellTypes = Object.keys(elementalSpells);
 
@@ -1249,8 +1324,8 @@ function handleSpiritOrbs() {
       size: random(26, 42),
       seed: random(1000),
       spellType: spellType,
-      vx: random(-0.45, 0.45),
-      vy: random(-0.35, 0.35)
+      vx: random(-0.5, 0.5),
+      vy: random(-0.5, 0.5)
     });
   }
 
