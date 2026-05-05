@@ -833,6 +833,9 @@ function applyFairyGlow() {
         drawElfEar(ex, ey, -1);
       }
       
+      // Draw fairy name above head
+      drawFairyName(nx, ny - 140);
+      
       // Draw health bar above head
       drawHealthBar(nx, ny - 120);
       
@@ -848,6 +851,22 @@ function applyFairyGlow() {
       particles.push(p1);
     }
   }
+}
+
+function drawFairyName(x, y) {
+  push();
+  
+  // Set text properties
+  textAlign(CENTER, CENTER);
+  textSize(16);
+  fill(255, 255, 255, 200); // White text with slight transparency
+  stroke(0, 0, 0, 150); // Black outline for better visibility
+  strokeWeight(3);
+  
+  // Display fairy name
+  text(myPlayerName || "Fairy", x, y);
+  
+  pop();
 }
 
 function drawHealthBar(x, y) {
@@ -887,8 +906,7 @@ function drawWing(x, y, dir) {
   push();
   translate(x, y);
   
-  let flutter = sin(frameCount * 0.2) * 0.1;
-  rotate(dir * PI/8 + flutter); 
+  rotate(dir * PI/8); 
   
   // Glowing effect
   blendMode(ADD);
