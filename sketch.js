@@ -406,7 +406,7 @@ function setup() {
   nameInput.style('padding', '10px 15px');
   nameInput.style('border-radius', '25px');
   nameInput.style('border', '2px solid #00ffff');
-  nameInput.style('background', 'rgba(20,0,40,0.8)');
+  nameInput.style('background', 'rgba(20,0,40,0.6)'); // Less opacity to prevent stretching
   nameInput.style('color', 'white');
   nameInput.style('font-family', 'Quicksand');
   nameInput.style('font-size', '1rem');
@@ -1256,8 +1256,15 @@ async function castRegionalSpell(objectPrompt) {
         loadImage(result.output, (incomingImage) => {
           currentObjectTransformed = incomingImage; 
           isCasting = false;
-          feedback.html("Spell successful!");
-          setTimeout(() => { feedback.html(""); }, 2000); // Clear after 2 seconds
+          
+          // Start exploration phase
+          feedback.html("✨ Wand conjured! Now exploring magical properties...");
+          setTimeout(() => { 
+            feedback.html("🔍 Discovered: " + getSpellDescription(result.output) + " spell!");
+            setTimeout(() => { 
+              feedback.html("");
+            }, 3000); // Show description for 3 seconds
+          }, 3000); // Show exploration message for 3 seconds
           
           spellContainer.hide(); // Hide conjure UI
           
@@ -1267,9 +1274,9 @@ async function castRegionalSpell(objectPrompt) {
 
     }
   } catch (error) {
-    isCasting = false;
-    feedback.html("The transformation spell failed! Make sure you are holding the object clearly!");
-  }
+      isCasting = false;
+      feedback.html("The transformation spell failed! Make sure you are holding the object clearly!");
+    }
 }
 
 // Helper to manage step progression
@@ -1304,6 +1311,24 @@ function nextStep(step) {
         let spellInstructions = document.getElementById('spell-instructions');
         if (spellInstructions) {
           spellInstructions.style.display = 'block';
+          spellInstructions.innerHTML = `
+            <div style="text-align: center; color: white; font-family: 'Quicksand'; padding: 20px;">
+              <h3 style="margin: 0 0 15px 0; color: #00ffff;">✨ Spell Instructions ✨</h3>
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 20px;">
+                <div style="background: rgba(0,0,0,0.8); padding: 15px; border-radius: 10px; border: 1px solid #00ffff;">
+                  <h4 style="margin: 0 0 10px; color: #ff00ff; font-size: 1.2rem;">🔥 Air-Steals</h4>
+                  <p style="margin: 5px 0; color: white;">Steals 20 health and freezes opponent for 3 seconds</p>
+                </div>
+                <div style="background: rgba(0,0,0,0.8); padding: 15px; border-radius: 10px; border: 1px solid #00ffff;">
+                  <h4 style="margin: 0 0 10px; color: #00ffff; font-size: 1.2rem;">❄️ Ice-Freeze</h4>
+                  <p style="margin: 5px 0; color: white;">Freezes opponent for 5 seconds and prevents movement</p>
+                </div>
+                <div style="background: rgba(0,0,0,0.8); padding: 15px; border-radius: 10px; border: 1px solid #00ffff;">
+                  <h4 style="margin: 0 0 10px; color: #ff6600; font-size: 1.2rem;">🔥 Fire-Burn</h4>
+                  <p style="margin: 5px 0; color: white;">Burns 25 health and applies orange flame filter for 4 seconds</p>
+                </div>
+              </div>
+          `;
         }
         // Reset ready status for new game
         playerReady = false;
@@ -1319,6 +1344,89 @@ function nextStep(step) {
       }
     }
   }, 500); 
+}
+
+// Spell descriptions for different wand types
+function getSpellDescription(spellType) {
+  const descriptions = {
+    'air-steals': '🔥 Air-Steals - Steals 20 health and freezes opponent for 3 seconds',
+    'ice-freeze': '❄️ Ice-Freeze - Freezes opponent for 5 seconds and prevents movement',
+    'fire-burn': '🔥 Fire-Burn - Burns 25 health and applies orange flame filter for 4 seconds'
+  };
+  return descriptions[spellType] || 'Unknown spell';
+}
+
+// Air-steals spell effect
+function applyAirSteals(targetPlayer) {
+  if (targetPlayer && remotePlayers[targetPlayer]) {
+    // Steal health
+    let currentHealth = remotePlayers[targetPlayer].health || 100;
+    let newHealth = Math.max(0, currentHealth - 20);
+    
+    // Apply freeze effect
+    remotePlayers[targetPlayer].frozenUntil = Date.now() + 3000; // 3 seconds
+    remotePlayers[targetPlayer].frozen = true;
+    
+    // Update health in database
+    if (myPlayerID) {
+      db.ref('players/' + targetPlayer + '/health').set(newHealth);
+      db.ref('players/' + targetPlayer + '/frozenUntil').set(Date.now() + 3000);
+      db.ref('players/' + targetPlayer + '/frozen').set(true);
+    }
+    
+    // Visual feedback
+    feedback.html("🔥 Air-Steals cast on " + targetPlayer + "!");
+    
+    // Create freeze particles
+    for (let i = 0; i < 30; i++) {
+      particles.push(new Particle(random(width), random(height)));
+    }
+  }
+}
+
+// Ice-freeze spell effect
+function applyIceFreeze(targetPlayer) {
+  if (targetPlayer && remotePlayers[targetPlayer]) {
+    // Apply freeze effect
+    remotePlayers[targetPlayer].frozenUntil = Date.now() + 5000; // 5 seconds
+    remotePlayers[targetPlayer].frozen = true;
+    
+    // Update in database
+    if (myPlayerID) {
+      db.ref('players/' + targetPlayer + '/frozenUntil').set(Date.now() + 5000);
+      db.ref('players/' + targetPlayer + '/frozen').set(true);
+    }
+    
+    // Visual feedback
+    feedback.html("❄️ Ice-Freeze cast on " + targetPlayer + "!");
+    
+    // Create ice particles
+    for (let i = 0; i < 20; i++) {
+      particles.push(new Particle(random(width), random(height)));
+    }
+  }
+}
+
+// Fire-burn spell effect
+function applyFireBurn(targetPlayer) {
+  if (targetPlayer && remotePlayers[targetPlayer]) {
+    // Burn health
+    let currentHealth = remotePlayers[targetPlayer].health || 100;
+    let newHealth = Math.max(0, currentHealth - 25);
+    
+    // Update health in database
+    if (myPlayerID) {
+      db.ref('players/' + targetPlayer + '/health').set(newHealth);
+    }
+    
+    // Visual feedback
+    feedback.html("🔥 Fire-Burn cast on " + targetPlayer + "!");
+    
+    // Create fire particles
+    for (let i = 0; i < 40; i++) {
+      particles.push(new Particle(random(width), random(height)));
+    }
+  }
 }
 
 function setupCombatUI() {
