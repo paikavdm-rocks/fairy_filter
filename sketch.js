@@ -889,12 +889,12 @@ function applyFairyGlow() {
       // Left wing position
       let leftWingX = faceX - shoulderWidth;
       let leftWingY = faceY + shoulderDrop;
-      drawWing(leftWingX, leftWingY, 1);
+      drawWing(leftWingX, leftWingY, -1);
       
       // Right wing position  
       let rightWingX = faceX + shoulderWidth;
       let rightWingY = faceY + shoulderDrop;
-      drawWing(rightWingX, rightWingY, -1);
+      drawWing(rightWingX, rightWingY, 1);
     }
     
     // Draw Fairy Ears on the Head (no crown)
@@ -1006,7 +1006,7 @@ function drawWing(x, y, dir) {
   fill(red(c), green(c), blue(c), 100);
   ellipse(dir * 50, -80, 100, 200); 
   
-  fill(30, 120, 255, 120);
+  fill(20, 80, 255, 120);
   ellipse(dir * 40, -60, 60, 150); 
   
   fill(255, 150, 100, 150);
