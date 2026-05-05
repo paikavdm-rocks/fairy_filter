@@ -360,8 +360,8 @@ function setup() {
   let cw = min(windowWidth * 0.95, 650); // Responsive width with max limit
   let ch = cw * 0.75; // Maintain 4:3 aspect ratio
   if (windowWidth < 768) {
-    cw = min(windowWidth * 0.75, 450); // Even more conservative mobile width
-    ch = min(cw * 0.75, 338); // Ensure proper aspect ratio on mobile
+    cw = 400; // Fixed mobile width for consistent appearance
+    ch = 300; // Fixed mobile height for proper 4:3 aspect ratio
   }
 
   canvas = createCanvas(cw, ch);
