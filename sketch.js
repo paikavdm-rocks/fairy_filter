@@ -1549,89 +1549,36 @@ let trackingStability = 0;
 let lastValidPositions = []; // Store recent valid positions for averaging
 const TRACKING_SMOOTH = 0.15; // Much lower value = very smooth tracking like original
 const MIN_STABILITY = 5; // Higher threshold for more stable tracking
-const POSITION_HISTORY = 8; // More positions to average for much smoother tracking
-const PERSISTENCE_TIME = 20; // Shorter persistence for more responsive tracking
-
 function getIndexFingerPosition() {
   if (!Array.isArray(hands) || hands.length === 0 || !hands[0]) {
-    trackingStability = max(0, trackingStability - 1); // Decrease stability more slowly
-    // Keep returning last known position for longer persistence
-    if (trackingStability > 0 && lastIndexPos) {
-      // Apply gentle smoothing to last known position
-      return lastIndexPos;
-    }
     return null;
   }
   
   let hand = hands[0];
   
-  // Lower confidence threshold to continue tracking even with partial hand visibility
-  if (hand.confidence < 0.2) {
-    trackingStability = max(0, trackingStability - 1);
-    return trackingStability > 0 ? lastIndexPos : null;
-  }
-  
+  // Get index finger tip using ML5 standard landmarks
   let tipRaw = null;
-  let tipConfidence = 0;
-  
-  // Try multiple methods to get index finger tip with confidence
-  if (hand.annotations && hand.annotations.indexFinger && hand.annotations.indexFinger[3]) {
-    tipRaw = hand.annotations.indexFinger[3];
-    tipConfidence = hand.annotations.indexFinger[3].confidence || 0.5;
-  } else if (hand.landmarks && hand.landmarks.length > 8) {
-    tipRaw = hand.landmarks[8];
-    tipConfidence = hand.landmarks[8].confidence || 0.5;
-  } else if (hand.keypoints && hand.keypoints.length > 8) {
-    tipRaw = hand.keypoints[8];
-    tipConfidence = hand.keypoints[8].confidence || 0.5;
+  if (hand.landmarks && hand.landmarks.length > 8) {
+    tipRaw = hand.landmarks[8]; // Index finger tip landmark
   }
   
-  if (!tipRaw || tipConfidence < 0.1) { // Lower threshold for more persistent tracking
-    trackingStability = max(0, trackingStability - 1); // Decrease stability more slowly
-    return trackingStability > 0 ? lastIndexPos : null;
+  if (!tipRaw) {
+    return null;
   }
   
-  let rawX = Array.isArray(tipRaw) ? tipRaw[0] : tipRaw.x;
-  let rawY = Array.isArray(tipRaw) ? tipRaw[1] : tipRaw.y;
+  let rawX = tipRaw.x;
+  let rawY = tipRaw.y;
   
   if (rawX === undefined || rawY === undefined) {
-    trackingStability = max(0, trackingStability - 1); // Decrease stability more slowly
-    return trackingStability > 0 ? lastIndexPos : null;
+    return null;
   }
   
-  // Map coordinates with better precision
-  let newX = width - map(rawX, 0, vidW(), 0, width);
-  let newY = map(rawY, 0, vidH(), 0, height);
-  
-  // Add to position history for averaging
-  lastValidPositions.push({ x: newX, y: newY });
-  if (lastValidPositions.length > POSITION_HISTORY) {
-    lastValidPositions.shift();
-  }
-  
-  // Use averaged position for better stability
-  if (lastValidPositions.length >= 3) {
-    let avgX = 0, avgY = 0;
-    for (let pos of lastValidPositions) {
-      avgX += pos.x;
-      avgY += pos.y;
-    }
-    avgX /= lastValidPositions.length;
-    avgY /= lastValidPositions.length;
-    newX = avgX;
-    newY = avgY;
-  }
-  
-  // Apply smoothing if we have a stable tracking history
-  if (lastIndexPos && trackingStability > MIN_STABILITY) {
-    newX = lerp(lastIndexPos.x, newX, TRACKING_SMOOTH);
-    newY = lerp(lastIndexPos.y, newY, TRACKING_SMOOTH);
-  }
-  
-  // Update tracking stability more gradually for longer persistence
-  trackingStability = min(trackingStability + 2, PERSISTENCE_TIME);
+  // Map coordinates directly without smoothing
+  let newX = width - map(rawX, 0, 1, 0, width);
+  let newY = map(rawY, 0, 1, 0, height);
   
   lastIndexPos = { x: newX, y: newY };
+  
   return lastIndexPos;
 }
 
