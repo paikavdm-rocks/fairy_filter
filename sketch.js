@@ -200,8 +200,10 @@ window.setPlayerReady = function() {
     playerReady = true;
     let readyButton = document.getElementById('ready-button');
     if (readyButton) {
-      readyButton.style.display = 'none';
       readyButton.style.backgroundColor = '#FF1493'; // Dark pink when clicked
+      readyButton.style.cursor = 'not-allowed'; // Show it's been clicked
+      readyButton.style.opacity = '0.7'; // Slightly fade to show it's inactive
+      readyButton.textContent = '✨ READY!'; // Update text to show ready state
     }
     
     // Update Firebase with ready status
