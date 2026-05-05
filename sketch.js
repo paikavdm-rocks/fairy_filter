@@ -1023,7 +1023,7 @@ function drawWing(x, y, dir) {
   fill(red(c), green(c), blue(c), 100);
   ellipse(dir * 50, -80, 100, 200); 
   
-  fill(20, 80, 255, 120);
+  fill(10, 40, 255, 120);
   ellipse(dir * 40, -60, 60, 150); 
   
   fill(255, 150, 100, 150);
