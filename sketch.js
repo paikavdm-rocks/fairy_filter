@@ -864,8 +864,8 @@ function applyFairyGlow() {
     pose = poses[0];
     // Store current face position
     lastFacePosition = {
-      leftShoulder: pose.left_shoulder,
-      rightShoulder: pose.right_shoulder,
+      leftEye: pose.left_eye,
+      rightEye: pose.right_eye,
       leftEar: pose.left_ear,
       rightEar: pose.right_ear,
       nose: pose.nose
@@ -878,19 +878,19 @@ function applyFairyGlow() {
   }
   
   if (pose) {
-    // Draw Wings using last known or current position
-    let lShoulder = pose.leftShoulder || pose.left_shoulder;
-    let rShoulder = pose.rightShoulder || pose.right_shoulder;
+    // Draw Wings using face tracking (positioned at sides of head)
+    let leftEye = pose.leftEye || pose.left_eye;
+    let rightEye = pose.rightEye || pose.right_eye;
     
-    if (lShoulder && lShoulder.confidence > 0.1) {
-      let sx = map(lShoulder.x, 0, vidW(), 0, width);
-      let sy = map(lShoulder.y, 0, vidH(), 0, height);
+    if (leftEye && leftEye.confidence > 0.1) {
+      let sx = map(leftEye.x, 0, vidW(), 0, width) - 60; // Position left of left eye
+      let sy = map(leftEye.y, 0, vidH(), 0, height) + 20; // Slightly below eye level
       drawWing(sx, sy, 1);
     }
     
-    if (rShoulder && rShoulder.confidence > 0.1) {
-      let sx = map(rShoulder.x, 0, vidW(), 0, width);
-      let sy = map(rShoulder.y, 0, vidH(), 0, height);
+    if (rightEye && rightEye.confidence > 0.1) {
+      let sx = map(rightEye.x, 0, vidW(), 0, width) + 60; // Position right of right eye
+      let sy = map(rightEye.y, 0, vidH(), 0, height) + 20; // Slightly below eye level
       drawWing(sx, sy, -1);
     }
     
@@ -925,9 +925,9 @@ function applyFairyGlow() {
     }
     
     // Particles flowing down from wings
-    if (frameCount % 3 === 0 && lShoulder && rShoulder) {
-      let sx1 = map(lShoulder.x, 0, vidW(), 0, width);
-      let sy1 = map(lShoulder.y, 0, vidH(), 0, height);
+    if (frameCount % 3 === 0 && leftEye && rightEye) {
+      let sx1 = map(leftEye.x, 0, vidW(), 0, width);
+      let sy1 = map(leftEye.y, 0, vidH(), 0, height);
       let p1 = new Particle(sx1 + random(-20, 20), sy1);
       p1.color = myFairyColor;
       particles.push(p1);
