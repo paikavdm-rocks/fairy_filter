@@ -360,8 +360,8 @@ function setup() {
   let cw = min(windowWidth * 0.95, 650); // Responsive width with max limit
   let ch = cw * 0.75; // Maintain 4:3 aspect ratio
   if (windowWidth < 768) {
-    cw = min(windowWidth * 0.85, 480); // More conservative mobile width
-    ch = min(cw * 0.75, 360); // Ensure proper aspect ratio on mobile
+    cw = min(windowWidth * 0.75, 450); // Even more conservative mobile width
+    ch = min(cw * 0.75, 338); // Ensure proper aspect ratio on mobile
   }
 
   canvas = createCanvas(cw, ch);
@@ -943,7 +943,7 @@ function applyFairyGlow() {
       }
       
       // Draw fairy name above health bar with mobile adjustment
-      let nameOffset = windowWidth < 768 ? -100 : -140; // Less offset on mobile
+      let nameOffset = windowWidth < 768 ? -80 : -140; // Less negative offset on mobile
       drawFairyName(nx, ny + nameOffset);
       
       // Draw health bar below fairy name (moved lower)
